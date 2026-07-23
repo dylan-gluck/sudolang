@@ -1,0 +1,9 @@
+[submodule "tree-sitter-sudolang"]
+	path = tree-sitter-sudolang
+	url = https://github.com/dylan-gluck/tree-sitter-sudolang.git
+[submodule "sudolang-lsp"]
+	path = sudolang-lsp
+	url = https://github.com/dylan-gluck/sudolang-lsp.git
+[submodule "zed-sudolang"]
+	path = zed-sudolang
+	url = https://github.com/dylan-gluck/zed-sudolang.git

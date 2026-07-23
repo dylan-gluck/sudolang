@@ -1,0 +1,366 @@
+# liquid-snipe — Provider Research
+
+"Companion to PROJECT.md (Open decisions §) and SPEC.md (§5.6, §6, §11)."
+"Resolves the two cost/latency-driving picks: gRPC stream AND SWQOS."
+"Pricing as of May 2026. Tip floors and subscription tiers move month-to-month — re-verify before locking in."
+
+## Operator profile
+
+OperatorProfile {
+  // Drives every pick below.
+
+  location = "NY"
+  "All region picks bias to NYC PoPs."
+
+  cadence = "not full-time"
+  "Goal: prove strategy works on paper, then trickle into live."
+  "Don't pre-pay for predictable-cost infra (Helius Business, dedicated nodes) until expectancy measured."
+
+  current = "Helius free tier"
+  planned = "Triton PAYG ($125 entry) for real Yellowstone gRPC"
+
+  avoid = "WS-fallback rung"
+  "SPEC's logsNotifications + per-candidate getTransaction path adds 50-200ms per evaluation — kills the whole point of a sniper."
+}
+
+## TL;DR — Recommended day-one stack
+
+DayOneStack {
+  gRPC {
+    pick           = "Triton One PAYG"
+    monthly_fixed  = "$125 prepay → ~$60-300/mo metered after"
+    per_tx         = "$0 per call, $0.08/GB egress"
+    why            = "Cheapest real-Yellowstone path. Authors of yellowstone-grpc. NYC GeoDNS colocates to operator IP."
+  }
+
+  RPC {
+    pick           = "Helius free (until rate-limited) → Helius Dev $49 if needed"
+    monthly_fixed  = "$0"
+    per_tx         = "$0"
+    why            = "Already have it; upgrade only when free-tier RPS bites. Triton PAYG also covers RPC if consolidating."
+  }
+
+  SWQOS_slot_1 {
+    pick           = "Jito (NYC)"
+    monthly_fixed  = "$0"
+    per_tx         = "live tip floor (~0.0000025 SOL p50, ~0.000337 SOL p99)"
+    why            = "No account friction, only provider with bundles, lowest practical tip floor."
+  }
+
+  SWQOS_slot_2 {
+    pick           = "0slot.trade (NY)"
+    monthly_fixed  = "$0 (promo)"
+    per_tx         = "0.0001 SOL (Advanced) / 0.001 SOL (lower tiers)"
+    why            = "Parallel leg for fan-out, NY PoP, no approval gate."
+  }
+
+  SWQOS_slot_3_optional {
+    pick           = "BlockRazor (NY)"
+    monthly_fixed  = "$0"
+    per_tx         = "0.0001 SOL"
+    why            = "Best explicit anti-sandwich (sandwichMitigation + safeWindow) for fresh-pool buys."
+  }
+}
+
+DayOneTotals {
+  fixed     = "$125 Triton prepay (consumed as you stream, not lost)."
+  recurring = "~$60-300/mo metered Triton + $0 RPC (until Helius free runs out) + variable SWQOS tips."
+  intuition = "At 50 trades/day with Jito p75 tip ≈ $0.06/day at SOL=$200."
+}
+
+### Cost ladder
+
+"When to step up, not where to start."
+
+CostLadder {
+  start {
+    stack          = "Triton PAYG + Helius free + Jito (NYC)"
+    monthly_fixed  = "~$60-300 metered"
+    upgrade_when   = "— (this is the entry point)"
+  }
+
+  add_helius_dev {
+    delta          = "+$49"
+    upgrade_when   = "Helius free 429s on enrichment / blockhash refresh under sustained load"
+  }
+
+  add_parallel_swqos {
+    stack          = "+ 0slot / BlockRazor as parallel SWQOS legs"
+    delta          = "+$0"
+    upgrade_when   = "First evidence of buy-failure correlation with single-provider latency"
+  }
+
+  swap_to_helius_business {
+    stack          = "Swap Triton PAYG → Helius Business (flat)"
+    monthly_fixed  = "$499"
+    upgrade_when   = "Triton metered consistently above ~$400/mo AND you want predictable billing"
+  }
+
+  self_host_yellowstone {
+    stack          = "Self-host Yellowstone in NYC (Latitude/Vultr)"
+    monthly_fixed  = "~$800"
+    upgrade_when   = "Monthly infra costs already > $500 AND strategy is profitably live full-time"
+  }
+}
+
+"The point: don't pay for predictable-cost infra until the strategy proves itself."
+"Triton PAYG aligns the bill with usage — slow weeks cost less, hot weeks cost more, no commitment to a flat tier."
+
+## 1. gRPC providers
+
+"One stream, 8 DEX program IDs, processed commitment."
+
+interface GrpcProvider {
+  name
+  min_entry
+  included
+  regions
+  latency
+  auth
+  gotcha
+}
+
+GrpcOptions {
+  Helius_LaserStream {
+    min_entry = "$499/mo (Business)"
+    included  = "100M credits, 200 RPC req/s, multi-region failover, replay"
+    regions   = "US / EU / Asia (managed)"
+    latency   = "No published p99; managed gRPC ~few ms behind slot"
+    auth      = "API key in URL"
+    gotcha    = "Bandwidth add-on +$400/mo at high stream volume; chatty filters (Pump.fun) hit it fast."
+  }
+
+  Triton_DragonsMouth {
+    min_entry = "$125 prepay (PAYG, metered after)"
+    included  = "gRPC + WS streaming, replay (Old Faithful), Fumarole HA"
+    regions   = "AMS + NYC (GeoDNS) — NYC matches operator"
+    latency   = "Self-published: slot p90 ~5ms, account update p90 ~215ms"
+    auth      = "x-token header"
+    gotcha    = "$0.08/GB egress, $0/call for streaming — ~$60-300/mo for our 8-program filter. Region-pinning requires Dedicated (~$2,900/mo) but GeoDNS already routes NY traffic to NYC. account_include_max default 10 (we need 8 — fits)."
+  }
+
+  Jito_Shredstream {
+    min_entry = "$0 + your infra (~1 vCPU, ~few hundred Mbps)"
+    included  = "Raw shred UDP, up to 2 regions"
+    regions   = "AMS, DUB, FRA, LON, NYC, SLC, SGP, TYO"
+    latency   = "Lowest-latency feed on Solana; arrives BEFORE block assembly."
+    auth      = "Pubkey whitelist (apply via Jito Discord)"
+    gotcha    = "Shreds, NOT parsed tx — needs deshred → entry → tx → account-write resolution. Account state diffs not directly observable. Complement to Yellowstone, not substitute."
+  }
+
+  Self_hosted_Yellowstone {
+    min_entry = "~$800/mo (Latitude f4.metal.large, FRA)"
+    included  = "Full RPC + geyser-grpc-plugin, 20 TB egress pool"
+    regions   = "Anywhere bare-metal exists"
+    latency   = "Best possible — sub-ms plugin-to-consumer if colocated"
+    auth      = "You configure (typically x-token)"
+    gotcha    = "You now operate a Solana RPC node: monthly Agave releases, snapshots, peering, ~10-20 hr/mo sysadmin. Initial sync 6-24 hr."
+  }
+}
+
+GrpcPick {
+  pick = "Triton PAYG"
+  "$125 prepay unlocks self-serve Yellowstone gRPC metered at $0.08/GB streaming with no per-call charge."
+  "For our 8-program filter that's ~$60-300/mo — materially cheaper than Helius Business at $499 flat."
+  "GeoDNS routes the operator's NY traffic to the NYC PoP, so shared-tier latency is fine for NY-based operation; no need to chase dedicated region-pinning."
+  step_up_to_helius = "Only when Triton metered consistently exceeds the flat fee AND you want billing predictability."
+  self_host         = "A 'strategy is profitably full-time' decision, not a day-one one."
+  shredstream       = "Insufficient alone — delivers raw shreds, not the parsed account writes the hot loop needs."
+}
+
+## 2. SWQOS providers
+
+"The bot's [[swqos]] array can hold any combination. Concurrent multi-provider sends use the SDK's parallel-submit path (fastest wins)."
+"Cost equation: monthly subscription + per-tx tip floor × trade rate."
+
+interface SwqosProvider {
+  name
+  monthly_fee
+  min_tip
+  regions
+  transports
+  bundles
+  mev_protect
+  self_host
+  onboarding
+  verdict
+}
+
+SwqosOptions {
+  Jito {
+    monthly_fee = "$0"
+    min_tip     = "1k lamports floor; live p50 ~0.0000025 SOL, p99 ~0.000337 SOL"
+    regions     = "AMS, DUB, FRA, LON, NYC, SLC, DAL, SGP, TYO"
+    transports  = ["HTTP", "gRPC"]
+    bundles     = "Yes (5-tx atomic, revert protect)"
+    mev_protect = "default on single-tx"
+    self_host   = false
+    onboarding  = "instant, no key required"
+    verdict     = "enable"
+  }
+
+  Zero_slot_trade {
+    monthly_fee = "$0 (promo)"
+    min_tip     = "0.001 SOL (Trial/Entry/Inter) / 0.0001 SOL (Advanced)"
+    regions     = "NY, LA, FRA, AMS, TYO"
+    transports  = "HTTP staked_conn"
+    bundles     = false
+    mev_protect = "claimed best-in-class anti-sandwich"
+    self_host   = false
+    onboarding  = "Discord (kurt0slot) — friction"
+    verdict     = "enable as 2nd leg"
+  }
+
+  BlockRazor {
+    monthly_fee = "$0"
+    min_tip     = "0.0001 SOL (T0) / 0.001 SOL (T4-T1)"
+    regions     = "NY, FRA, AMS, LON, TYO"
+    transports  = ["HTTP", "gRPC"]
+    bundles     = false
+    mev_protect = "explicit sandwichMitigation + safeWindow"
+    self_host   = false
+    onboarding  = "API key"
+    verdict     = "enable as 3rd leg for fresh-pool buys"
+  }
+
+  Astralane {
+    monthly_fee = "unpublished (sales)"
+    min_tip     = "0.00001 SOL (lowest)"
+    regions     = "FRAx2, SF, TYO, NY, AMSx2, Limburg, SGP, Lithuania"
+    transports  = ["HTTP /iris", "Binary /irisb", "QUIC :7000 / :9000 (mev-protect)"]
+    bundles     = false
+    mev_protect = "port 9000 + mev-protect=true flag"
+    self_host   = false
+    onboarding  = "sales contact required"
+    verdict     = "evaluate — opaque price but tech is best-in-class (persistent QUIC, lowest tip)"
+  }
+
+  Temporal_Nozomi {
+    monthly_fee = "$0 (gated approval)"
+    min_tip     = "0.001 SOL (~1000x Jito floor)"
+    regions     = "PIT, EWR, IAD, LA, FRA, AMS, LON, TYO, SGP"
+    transports  = "HTTP"
+    bundles     = false
+    mev_protect = "optional Front-Running Protection (Helius/Coinbase only — slower)"
+    self_host   = "enterprise-only"
+    onboarding  = "approval form"
+    verdict     = "skip day one — same floor as 0slot, no compensating advantage. Only consider for US-east coverage 0slot lacks."
+  }
+
+  NextBlock {
+    monthly_fee = "$249/mo (Entry, 5 TPS)"
+    min_tip     = "0.001 SOL"
+    regions     = "NY, FRA, AMS, DUB, SLC, TYO, SGP, LON"
+    transports  = "HTTP"
+    bundles     = false
+    mev_protect = "not documented"
+    self_host   = false
+    onboarding  = "API key"
+    verdict     = "skip — only one with mandatory subscription, steep for solo wallet."
+  }
+
+  FlashBlock {
+    monthly_fee = "unpublished (sales)"
+    min_tip     = "0.0001 SOL"
+    regions     = "NY, SLC, AMS, FRA, LON, SGP, TYO"
+    transports  = "HTTP"
+    bundles     = false
+    mev_protect = "claimed but no toggle documented"
+    self_host   = false
+    onboarding  = "sales contact"
+    verdict     = "skip — no transparent pricing, no QUIC, weak MEV story, obscure."
+  }
+
+  SpeedLanding {
+    monthly_fee = "private"
+    min_tip     = "0.001 SOL"
+    regions     = "NYC, FRA, AMS, TYO, SGP"
+    transports  = "QUIC :17778 only"
+    bundles     = false
+    mev_protect = "not documented"
+    self_host   = false
+    onboarding  = "wallet-pubkey-bound, contact via fnzero"
+    verdict     = "skip — effectively private, no self-serve onboarding."
+  }
+}
+
+### Per-tx cost intuition
+
+"SOL = $200."
+
+CostIntuition {
+  astralane         = "0.00001 SOL → $0.002/tx → $0.20 / 100tx"
+  cheap_tier        = "0.0001 SOL  → $0.02/tx  → $2.00 / 100tx  (0slot Adv, BlockRazor T0, FlashBlock)"
+  jito_competitive  = "0.0003 SOL  → $0.06/tx  → $6.00 / 100tx  (Jito p99)"
+  high_tier         = "0.001 SOL   → $0.20/tx  → $20.00 / 100tx (Nozomi, NextBlock, 0slot lower tiers)"
+}
+
+"Subscription-vs-tip math kills NextBlock for a solo wallet: $249/mo + $20 per 100tx vs Jito's $0/mo + $6 per 100tx."
+"NextBlock only wins if you're routinely above ~1500 tx/mo AND their 5 TPS rate limit matters — neither holds for our profile."
+
+## 3. Open questions
+
+OpenQuestions {
+  Q1_JitoTipFloor {
+    "SPEC §6 has [gas] static fields. We need a live-tip-floor poll feeding the buy executor — otherwise we either underbid (no land) or overpay."
+    endpoint = "https://bundles.jito.wtf/api/v1/bundles/tip_floor"
+    action   = "Add a small task in bg/blockhash.rs neighborhood that refreshes the Jito tip percentile every N seconds and exposes it as AtomicU64 jito_tip_lamports. Probably p75 by default, configurable."
+  }
+
+  Q2_AstralaneOnboarding {
+    "If pricing turns out to be reasonable (~$2-3/mo indexing tier suggests sender plans are similar), it's the strongest tech pick: lowest tip floor, persistent QUIC eliminates handshake on every submit, dedicated MEV-protect port."
+    action = "Request a quote before committing to BlockRazor as the third leg."
+  }
+
+  Q3_ZeroSlotPromoEndDate {
+    "0slot 'Free!' is flagged 'NEW' — could revert any time. Validate when re-checking pricing."
+  }
+
+  Q4_NozomiUSEastCoverage {
+    "If we discover that US-east leader slots matter (verify by slot-vs-region analysis once live), Nozomi's PIT/EWR/IAD PoPs are the only ones in our provider set."
+    cost = "Same 0.001 SOL floor as 0slot Trial."
+  }
+
+  Q5_SelfHostedYellowstoneBreakEven {
+    "Not relevant until the strategy is profitably full-time."
+    trigger_to_revisit = "Monthly infra > $500/mo AND live PnL justifies the ~10-20 hr/mo ops burden."
+    box = "NYC (Latitude m3.large.x86 or comparable) — same region as the operator and most NY-side leader stake."
+  }
+
+  Q6_TritonBandwidthCeiling {
+    "PAYG bills overage at the same base rate ($0.08/GB), so there's no cliff — but a runaway filter (e.g. accidentally subscribing to a chatty system program) could rack up a surprise bill."
+    action = "Set a budget alert in Triton console; cap the filter to the 8 confirmed DEX program IDs; validate egress for the first week."
+  }
+}
+
+## 4. Citations
+
+Citations {
+  gRPC {
+    helius_pricing     = "https://www.helius.dev/pricing — Business $499 unlocks mainnet LaserStream"
+    helius_laserstream = "https://www.helius.dev/docs/grpc"
+    triton_dragons     = "https://docs.triton.one/project-yellowstone/dragons-mouth-grpc-subscriptions"
+    triton_blog        = "https://blog.triton.one/complete-guide-to-solana-streaming-and-yellowstone-grpc/"
+    jito_shredstream   = "https://docs.jito.wtf/lowlatencytxnfeed/"
+    shredstream_proxy  = "https://github.com/jito-labs/shredstream-proxy"
+    latitude_metal     = "https://www.latitude.sh/blog/the-best-servers-for-solana-rpc-and-validator-nodes"
+    yellowstone_grpc   = "https://github.com/rpcpool/yellowstone-grpc"
+  }
+
+  SWQOS {
+    jito_low_latency   = "https://docs.jito.wtf/lowlatencytxnsend/"
+    jito_mainnet_addrs = "https://jito-labs.gitbook.io/mev/searcher-resources/block-engine/mainnet-addresses"
+    jito_rate_limits   = "https://jito-labs.gitbook.io/mev/searcher-resources/json-rpc-api-reference/rate-limits"
+    jito_tip_floor     = "https://bundles.jito.wtf/api/v1/bundles/tip_floor"
+    nozomi_endpoints   = "https://use.temporal.xyz/nozomi/endpoints"
+    nozomi_tipping_faq = "https://use.temporal.xyz/nozomi/tipping-and-faq"
+    zero_slot_trade    = "https://0slot.trade/ , https://0slot.trade/docs.php"
+    blockrazor_docs    = "https://blockrazor.gitbook.io/blockrazor"
+    blockrazor_bench   = "https://www.blockrazor.io/blog/20250826e2etest/"
+    astralane_docs     = "https://astralane.gitbook.io/docs"
+    astralane_quic     = "https://astralane.gitbook.io/docs/low-latency/submit-transactions/quic-transaction-submission"
+    nextblock_pricing  = "https://docs.nextblock.io/pricing-and-rate-limits"
+    flashblock         = "https://flashblock.trade/ , https://doc.flashblock.trade/"
+    sol_trade_sdk_swqos = "reference/sol-trade-sdk/src/constants/swqos.rs"
+  }
+}
