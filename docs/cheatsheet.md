@@ -1,6 +1,6 @@
-# SudoLang v2.1 — Cheatsheet
+# SudoLang v2.2 — Cheatsheet
 
-Quick reference for the SudoLang pseudolanguage. Pin this next to your editor.
+Quick reference for the SudoLang pseudolanguage. Pin this next to your editor. v2.2 is a strict superset of v2.1 — see [SudoLang 2.2](#sudolang-22) for the new syntax.
 
 ---
 
@@ -172,6 +172,44 @@ join  split  trim  reverse  unique  flatten  merge
 
 ---
 
+## SudoLang 2.2
+
+New syntax over v2.1 (strict superset — every v2.1 program still parses):
+
+```sudo
+[first, ...rest] = queue                  // rest in patterns
+issue = mcp::linear.getIssue(id)          // :: capability namespace (vs . member access)
+f(branch = x, base = y)                   // named arguments at the call site
+!issue -> throw "not found"               // guard: condition -> statement
+parent = issue?.parent?.title ?? "none"   // optional chaining + nullish default
+config = { ...defaults, theme: "dark" }   // spread in literals / calls
+open = issues |> filter(_.state == "open") |> map(_.title)   // _ = piped value
+@retry(3) @timeout(120)                   // decorators stack; precede fn / interface / loop
+gather() { "explore the codebase" }
+```
+
+Decorator vocabulary: `@agent(name)` `@retry(n)` `@timeout(seconds)` `@parallel`
+`@memo` `@blocking(user)`. Unknown decorators are legal and inferred.
+
+**ASI gotcha:** a statement that starts with `[` or `(` right after an expression
+statement is parsed as indexing / call across the newline. End the previous line
+with `;` or put the `[`-leading statement first.
+
+### Token-economy idioms
+
+Prefer the 2.2 form — same intent, fewer tokens:
+
+| Instead of | Write |
+|---|---|
+| `if (gaps) askUser(gaps)` | `gaps -> askUser(gaps)` |
+| `f({ branch: b, base: d })` | `f(branch = b, base = d)` |
+| `if (exists(x.p)) x.p else "none"` | `x?.p ?? "none"` |
+| `filter(x => x.state == "open")` | `filter(_.state == "open")` |
+| `"Run gather as a general subagent."` | `@agent(general)` |
+| `"Use the linear MCP to fetch the issue."` | `mcp::linear.getIssue(id)` |
+
+---
+
 ## Program Skeleton
 
 ```sudo
@@ -181,8 +219,8 @@ join  split  trim  reverse  unique  flatten  merge
 
 // structure
 MyApp {
-  State { ... }
-  Constraints { ... }
+  State { /* ... */ }
+  Constraints { /* ... */ }
 
   /cmd - description
 }
@@ -206,7 +244,7 @@ union ∩          set ops
 <  >  <=  >=     comparison
 ==  !=           equality
 &&               AND
-||  xor          OR
+||  xor  ??      OR / nullish default (2.2)
 =  +=  -=  *=    assignment
 |>               pipe
 ```
@@ -235,4 +273,4 @@ union ∩          set ops
 
 ---
 
-*SudoLang v2.1 · [Full User Guide](user-guide.md) · [Spec](reference/sudolang.sudo.md) · [Grammar](grammar-specification.md)*
+*SudoLang v2.2 · [Full User Guide](user-guide.md) · [Spec](reference/sudolang.sudo.md) · [Grammar](grammar-specification.md)*

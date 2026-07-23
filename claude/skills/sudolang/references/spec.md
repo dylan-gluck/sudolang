@@ -1,7 +1,9 @@
-# SudoLang v2.1 — Syntax Reference
+# SudoLang v2.2 — Syntax Reference
 
 Condensed from `docs/cheatsheet.md`, `docs/user-guide.md`, and (authoritatively)
-`tree-sitter-sudolang/grammar.js`. Everything here parses clean.
+`tree-sitter-sudolang/grammar.js`. Everything here parses clean. v2.2 is a strict
+superset of v2.1 — the v2.1 constructs below are unchanged; the additions are
+under [SudoLang 2.2 additions](#sudolang-22-additions).
 
 ## Comments & prose
 
@@ -61,13 +63,16 @@ union  intersection       set ops (cap/cup deprecated aliases)
 ## Variables, destructuring, assignment
 
 ```sudo
-x = 42
-x += 1
 [a, b] = [1, 2]
 { name, age } = user
+x = 42
+x += 1
 obj.prop = 5
 arr[0] = "first"
 ```
+
+(Destructuring targets lead so the `[`-line isn't read as indexing a prior
+expression — see the ASI gotcha under [SudoLang 2.2 additions](#sudolang-22-additions).)
 
 ## Conditionals
 
@@ -181,23 +186,69 @@ inferred stdlib: `ask log list emit run explain transpile(lang) convert wrap
 escape concat sort sortBy filter map find groupBy join split trim reverse
 unique flatten merge pick pluck zip take takeLast skip slice count min max`.
 
+## SudoLang 2.2 additions
+
+Strict superset of v2.1 — all of the above still parses. New syntax:
+
+```sudo
+mcp::linear.getIssue(id)          // :: — capability namespace; . stays member access
+git::worktree.add(branch = x, base = y)   // named arguments (argument lists only)
+!issue -> throw "not found"       // guard: condition -> statement (stmt position only)
+gaps -> askUser(gaps)             // consequence: statement, block, require, or warn
+
+@agent(general)                   // decorator — execution metadata on a declaration
+gather() { "explore the codebase" }
+
+@retry(3) @timeout(120)           // decorators stack; also before for each / while / loop
+validate() { "typecheck, lint, test" }
+
+[first, ...rest] = queue          // rest in patterns
+{ id, ...extras } = record        // rest in object patterns
+parent = issue?.parent?.title ?? "none"   // optional chaining + nullish default
+config = { ...defaults, theme: "dark" }   // spread in literals
+run(...steps)                     // spread in calls
+open = issues |> filter(_.state == "open") |> map(_.title)   // _ = piped value
+```
+
+- **`::`** addresses a capability namespace (tools, MCP servers, agents); `.`
+  remains structural member access on values. Both chain: `mcp::linear.getIssue(id)`.
+- **Named arguments** are call-site labels, legal only inside argument lists.
+- **Guards** (`->`) run the consequence iff the condition holds — statement
+  position only, no chains, no `else` (reach for `if` for anything richer). Match
+  arms keep `=>`; the `->` vs `=>` split is intentional.
+- **Decorators** attach execution metadata; they stack and precede interface /
+  function (keyword and bare) declarations and `for each` / `while` / `loop`.
+  Vocabulary: `@agent(name)`, `@retry(n)`, `@timeout(seconds)`, `@parallel`,
+  `@memo`, `@blocking(user)`. Unknown decorators are legal and inferred.
+- **`?.`** short-circuits on null/absent; **`??`** supplies a default (same
+  precedence tier as `||`).
+- **`...`** spreads in literals and calls, and gathers as rest in array/object
+  patterns.
+- **`_`** is the piped value inside a pipe stage — it parses as a plain
+  identifier everywhere, but is only meaningful in a pipe; the LSP flags misuse.
+
+**ASI gotcha.** As in JavaScript, a statement starting with `[` (or `(`) right
+after an expression statement is parsed as indexing/calling the previous line
+across the newline. Terminate the prior statement with `;`, or put the
+bracket-leading statement first.
+
 ## Program skeleton
 
 ```sudo
 // One-line purpose comment
-// SudoLang v2.1
+// SudoLang v2.2
 
 # ProgramName
 
 "Role description: who the LLM acts as, expertise, tone."
 
-interface SharedShape { ... }
+interface SharedShape { field }
 
 stepOne() { "What this step accomplishes." }
 stepTwo() { result = stepOne() |> refine }
 
 ProgramName {
-  State { ... }
+  State { ready = false }
   Constraints { "Global rules." }
   /go - run the pipeline
 }

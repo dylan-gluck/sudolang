@@ -1,29 +1,62 @@
-```sudo
 # SudoLang workspace
 
-// Three packages, one design-doc set, all under github.com/dylan-gluck/.
-// docs/ is workspace-only, not part of any package.
+// Superproject with three package submodules, all under github.com/dylan-gluck/.
+// docs/ and claude/ are workspace-only, not part of any package.
+// Versions are LOCKSTEP: one release = same version across all three packages.
 
 Packages {
-  tree-sitter-sudolang  // parser — grammar.js + scanner.c, v0.1.1
-  sudolang-lsp          // LSP — tower-lsp + tree-sitter, v0.1.0
-  zed-sudolang          // Zed extension — Rust cdylib, v0.1.2
+  tree-sitter-sudolang  // parser — grammar.js only, no external scanner, v0.3.0
+  sudolang-lsp          // LSP — tower-lsp + tree-sitter, markdown virtual docs, v0.3.0
+  zed-sudolang          // Zed extension — Rust cdylib, v0.3.0
+}
+
+# Dialect
+
+// SudoLang v2.2 (docs/proposals/sudolang-2.2.md) — strict superset of v2.1.
+
+Features {
+  qualified:  "mcp::linear.getIssue(id) — :: is capability namespace, . is member access"
+  namedArgs:  "f(branch = x, base = y)"
+  guards:     "condition -> statement (statement position only, no else)"
+  decorators: "@agent(g) @retry(3) before interface/fn declarations and loops"
+  optional:   "?. member access, ?? nullish default"
+  spread:     "... in literals, calls, patterns"
+  placeholder: "_ in pipe stages; parses as plain identifier, LSP lints misuse"
+}
+
+FileTypes {
+  preferred: ".md with ```sudo fences (or .sudo.md to signal content)"
+  pure:      ".sudo — whole-file programs, no prose"
+  note:      "```sudo-next fences are proposal-only; every tool skips them"
 }
 
 # Status
 
 Done {
-  parser: "26/26 corpus tests; 5 canonical examples parse with zero ERROR/MISSING"
-  lsp:    "13/13 tests; diagnostics + deterministic formatter; idempotent on canonical examples"
-  zed:    "8 .scm queries; Rust extension resolves sudolang-lsp from $PATH"
+  parser: "56/56 corpus tests; 6 examples (.sudo + .sudo.md) zero ERROR/MISSING; release CI"
+  lsp:    "45/45 tests; markdown fences as virtual documents; 2.2 hovers/completions/lints"
+  zed:    "grammar rev pinned to 0.3.0; LSP attaches to Markdown; Cargo.lock committed"
 }
 
 Pending {
-  install-test: "zed: install dev extension — visual verification of highlight / outline / brackets / comment-toggle"
-  registry:     "Submit zed-sudolang to the Zed extensions registry"
+  push:         "Nothing is pushed or tagged yet — see docs/release.md for the order"
+  secrets:      "Repo secrets needed once: CARGO_REGISTRY_TOKEN (both Rust repos), NPM_TOKEN (grammar)"
+  install-test: "zed: install dev extension — visual verification (user-run; see warn below)"
+  registry:     "Submit zed-sudolang to zed-industries/extensions after grammar rev is pushed"
 }
 
-warn "Claude is blocked from writing to ~/Library/Application Support/Zed/ — Phase 2.8 install-test must be run by the user."
+warn "Claude is blocked from writing to ~/Library/Application Support/Zed/ — dev-extension install tests must be run by the user."
+
+# Release
+
+// Goal: roll out one version across all packages, automated with checks.
+
+Process {
+  preflight: "./scripts/release-preflight.sh — versions aligned, trees clean, all tests, rev pins"
+  runbook:   "docs/release.md — ordered: grammar → lsp → zed → registry PR"
+  order:     "grammar publishes first; lsp's dep is { path, version } and cargo publish strips
+              the path to resolve crates.io; zed pins the pushed grammar rev"
+}
 
 # LSP
 
@@ -33,47 +66,47 @@ Formatter {
   Constraints {
     "Never reorder tokens; never split or join lines"
     "Skip interior of block_comment / triple_quoted_block / double_string / template_string"
-    "Refuse when tree has any ERROR/MISSING node — block ranges would be unreliable"
+    "Pure .sudo: refuse when tree has any ERROR/MISSING node"
+    "Markdown: format each clean ```sudo fence in place; skip broken fences; never touch prose"
   }
+}
+
+Markdown {
+  model: "Document = Vec<Block>; pure file is one block at line 0; fence mapping is line-offset only"
+  scope: "Fences of one document share a symbol table — completion/hover/definition see all fences"
 }
 
 Wiring {
   binary: "No bundling — Zed registry forbids it. Extension resolves via worktree.which() from $PATH"
-  future: "Download-on-demand from GitHub Releases would require prebuilt artifacts per release"
+  dep:    "lsp → grammar is a path dep (../tree-sitter-sudolang) + version; CI checks out siblings"
   abi:    "Parser ABI 15 → tree-sitter crate >= 0.25 (0.24 fails set_language with LanguageError { version: 15 })"
 }
 
-# Parser
+# Gotchas
 
-Scanner {
-  role:   "Resolves the prose-vs-structure ambiguity the grammar alone can't"
-  emits:  ["natural_language_line", "multiword_heading", "multiword_property_name", "list_marker"]
-  leads:  ["fn", "function", "interface", "if", "for", "match", "require", "warn", "constraint"]
+warn "ASI hazard (as in JS): a statement starting with `[` or `(` after an expression
+      statement parses as index/call across the newline — end the previous statement
+      with `;` or reorder."
 
-  Constraints {
-    "Multi-word names recognised only when followed by `{` or `:`; else fall back to prose"
-    "Prose detection scans the line for top-level `=` / `+=`; bails to the lexer if found — assignments win without precedence tricks"
-    "List markers must start at column 0 (lexer->get_column) — `a + b * c` mustn't tokenise `+` as a bullet"
-    "property_value uses token.immediate + leading-space regex — prevents cross-blank-line matches"
-    "( -starting lines stay with the default lexer; treating them as prose broke `chunk() {}` and arrow fns"
-  }
-}
-
-warn "Capitalised constraint variants (Constraints, Requirements, Options, Lint, State) are NOT grammar keywords — they collide with English prose. Use lowercase `constraint` / `constraints` only."
+warn "Capitalised `Constraint` / `Constraints` ARE grammar keywords; Requirements /
+      Options / Lint / State are NOT — they collide with prose and stay identifiers."
 
 warn "grammar.js TS errors (`Cannot find name 'seq'`, etc.) are noise — missing @types/tree-sitter-cli, no effect on generation."
-```
 
 # Build
 
 ```bash
+# workspace
+./scripts/release-preflight.sh                    # full cross-package gate
+
 # tree-sitter-sudolang/
 tree-sitter generate && tree-sitter test
+./scripts/parse-examples.sh                       # .sudo whole + fences from .md/.sudo.md
 tree-sitter build --wasm
 
-# sudolang-lsp/
+# sudolang-lsp/   (needs ../tree-sitter-sudolang checked out)
 cargo test && cargo build --release
-cargo run --release --example format_canonical    # formatter diff vs canonical examples
+cargo run --release --example format_canonical
 
 # zed-sudolang/
 cargo build --release --target wasm32-wasip1

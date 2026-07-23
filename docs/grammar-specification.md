@@ -1,6 +1,6 @@
 # tree-sitter-sudolang — Grammar Specification
 
-Status: Draft 2 (v2.1). Targets the **SudoLang v2.1** dialect — the v2.0 spec, made strict.
+Status: Draft 3 (v2.2). Targets the **SudoLang v2.2** dialect — a strict superset of v2.1 (itself the v2.0 spec made strict). The v2.1 rules below are unchanged; the additive v2.2 productions are collected in [§4.10](#410-v22-additions).
 
 ## v2.1 changes vs. v2.0
 
@@ -500,6 +500,85 @@ The leading-character negative class prevents prose lines from accidentally swal
 
 Multi-line prose paragraphs are represented as `natural_language_block` containing multiple `natural_language_line` children. Blank lines terminate a block.
 
+### 4.10 v2.2 additions
+
+v2.2 is a strict superset of v2.1 — every rule above is unchanged. The following productions are additive. Each new token (`::`, `->`, `?.`, `??`, `...`, and the decorator `@` position) is illegal in v2.1, so no existing program is reinterpreted.
+
+**Qualified identifiers (`::`).** Capability namespaces — `mcp::linear`, `git::`, `fs::` — addressed with `::` between plain identifiers. Legal wherever an `identifier` heads a member/call expression; `.` remains structural member access on the result.
+
+```js
+qualified_identifier: $ => prec.left(seq(
+  $.identifier,
+  repeat1(seq('::', $.identifier)),
+)),
+```
+
+**Named arguments.** Call-site labels, only inside an argument list. `argument_list` admits `named_argument` alongside plain expressions and spread elements.
+
+```js
+named_argument: $ => seq(
+  field('name', $.identifier),
+  '=',
+  field('value', $._expression),
+),
+```
+
+Assignment-as-expression is already illegal in argument position, so the lone conflict with `=` is resolved by precedence without a `conflicts` entry.
+
+**Guard statements.** `condition -> statement`, statement position only — no chains, no `else`. The consequence is a statement, a block, or a `require` / `warn`. `->` is a new token; `=>` stays the match-arm / lambda arrow.
+
+```js
+guard_statement: $ => prec.right(seq(
+  field('condition', $._expression),
+  '->',
+  field('consequence', choice(
+    $.block,
+    $.require_statement,
+    $.warn_statement,
+    $._statement_or_expression,
+  )),
+)),
+```
+
+**Decorators.** `@name` with an optional argument list, stacked before a declaration or loop. Reuses the `@` sigil token. Unknown decorator names are legal (inferred metadata).
+
+```js
+decorator: $ => seq(
+  '@',
+  field('name', $.identifier),
+  optional(field('arguments', $.argument_list)),
+),
+```
+
+`repeat($.decorator)` precedes `interface_declaration`, `function_declaration` (keyword and bare forms), `for_each_statement`, `while_statement`, and `loop_statement`.
+
+**Optional chaining and nullish default.** `?.` is a member-access operator that short-circuits on null/absent; `??` is a binary operator on the same precedence tier as `||`.
+
+```js
+// member_expression admits an optional-chaining operator:
+member_expression: $ => prec.left(PREC.member, seq(
+  field('object', $._expression),
+  choice('.', '?.'),
+  field('property', $.identifier),
+)),
+
+// '??' joins the binary_expression operator set at PREC['||']:
+//   ...['||', '??', '&&', ...].map(op => prec.left(PREC[op], ...))
+```
+
+**Spread and rest.** `spread_element` (`...expr`) appears in array/object literals and argument lists; `rest_pattern` (`...target`) appears in array and object destructuring patterns.
+
+```js
+spread_element: $ => seq('...', $._expression),
+rest_pattern:   $ => seq('...', field('target', $.identifier)),
+```
+
+**Pipe placeholder.** `_` parses as a plain `identifier` everywhere — the grammar does **not** special-case it. Restricting `_` to pipe-stage right-hand sides is left to the LSP, which diagnoses use outside a pipe. Keeping `_` an ordinary identifier avoids a grammar-wide scoped rule and keeps the parser LR(1)-clean.
+
+**Formalized v2.1 features.** Triple-quoted `"""` blocks, `@scope/path` resource sigils, comma-grouped and money numerics (`1,000,000`, `$100,000`), optional parameters (`arg?`), trailing commas, and `throw` / `return` statements were already in `grammar.js`; v2.2 documents them as language.
+
+**Gotcha — statement-leading `[` (ASI).** As in JavaScript, a statement that begins with `[` (or `(`) immediately after an expression statement is parsed as an index/call continuation across the newline (`compute()` then `[a] = b` parses as `compute()[a] = b`). The grammar does not insert a semicolon; terminate the prior statement with `;` or reorder so the bracket-leading statement does not follow a bare expression.
+
 ## 5. Conflict resolution
 
 The intentionally permissive grammar produces several LR(1) conflicts that must be declared in the `conflicts` field:
@@ -554,6 +633,15 @@ Externally visible node types (those without a leading underscore) are:
 - `markdown_list_item`, `markdown_blockquote`
 - `fenced_code_block` — fields: `language`, `content`
 - `natural_language_line`, `natural_language_block`
+
+v2.2 additions (see §4.10):
+
+- `qualified_identifier`
+- `named_argument` — inside `argument_list`
+- `guard_statement` — fields: `condition`, `consequence`
+- `decorator` — fields: `name`, `arguments`
+- `spread_element`; `rest_pattern` — field: `target`
+- `member_expression` also carries the `?.` operator; `binary_expression` also carries `??`
 
 `supertypes` are declared for `_expression`, `_statement`, `_pattern` to hide intermediate nodes from the parse tree while keeping them queryable.
 

@@ -1,6 +1,8 @@
-# SudoLang v2.1 — User Guide
+# SudoLang v2.2 — User Guide
 
 SudoLang is a pseudolanguage designed for interacting with large language models. It blends natural language with lightweight programming constructs — interfaces, constraints, functions, pattern matching, pipes — to give you structured control over AI behavior without the overhead of a traditional programming language.
+
+This guide covers SudoLang v2.2, a strict superset of v2.1 — every valid v2.1 program is still valid. The v2.2 additions are collected in [SudoLang 2.2 — New Syntax](#20-sudolang-22--new-syntax).
 
 **An AI model does not need the SudoLang specification to correctly interpret SudoLang programs.** All sufficiently advanced LLMs understand SudoLang natively.
 
@@ -27,8 +29,9 @@ SudoLang is a pseudolanguage designed for interacting with large language models
 17. [Ranges](#17-ranges)
 18. [Referential Omnipotence](#18-referential-omnipotence)
 19. [Style Guide](#19-style-guide)
-20. [v2.1 Changes from v2.0](#20-v21-changes-from-v20)
-21. [Full Example: AI RPG](#21-full-example-ai-rpg)
+20. [SudoLang 2.2 — New Syntax](#20-sudolang-22--new-syntax)
+21. [v2.1 Changes from v2.0](#21-v21-changes-from-v20)
+22. [Full Example: AI RPG](#22-full-example-ai-rpg)
 
 ---
 
@@ -56,12 +59,17 @@ Greeter {
 
 Paste this into any LLM chat. It will respond with something like *"Hello, World!"* and understand that `/greet` is a command it should execute.
 
-### File extensions
+### File types and the authoring convention
+
+SudoLang is authored in two shapes, and **Markdown-with-fences is the preferred default**:
 
 | Extension | Use |
 |-----------|-----|
-| `.sudo` | Pure SudoLang files. The primary format. |
-| `.sudo.md` | SudoLang embedded in Markdown via ` ```sudo ` fenced code blocks. |
+| `.md` | **Preferred.** Markdown prose with SudoLang in ` ```sudo ` fenced code blocks — prose explains, the fences carry the program. |
+| `.sudo.md` | The same, with an extension that signals SudoLang content explicitly. |
+| `.sudo` | Pure SudoLang, for programs that need no surrounding prose. |
+
+Tooling — the LSP, the `validate.sh` gate, and CI — extracts and validates each ` ```sudo ` fence in `.md` / `.sudo.md` files, so a fenced program is checked exactly as a pure `.sudo` file is. Write in whichever form fits; reach for Markdown whenever prose earns its place beside the code.
 
 ---
 
@@ -603,7 +611,135 @@ This extends to the full capability of the LLM:
 
 ---
 
-## 20. v2.1 Changes from v2.0
+## 20. SudoLang 2.2 — New Syntax
+
+SudoLang 2.2 is a **strict superset** of v2.1: every valid v2.1 program is a valid 2.2 program. The additions close expressiveness gaps that fluent authors kept reaching for — capability calls, call-site labels, guards, execution metadata — and formalize several features that were already in the grammar but undocumented.
+
+### Qualified capability names (`::`)
+
+`::` addresses a **capability namespace** — tools, MCP servers, agents, external systems — while `.` stays structural member access on values:
+
+```sudo
+issue = mcp::linear.getIssue(ISSUE_ID)
+git::worktree.add({ branch: issue.branchName })
+summary = fs::read(path) |> ai::summarize
+```
+
+The distinction tells the interpreter "resolve this against the environment" (`mcp::linear`, `git::`, `fs::`) versus "read this off a value" (`.parent`, `.title`). In agent contexts this maps directly onto tool namespaces, making SudoLang a natural orchestration surface without a module system. `::` joins plain identifiers; `.` continues to do member access on the result.
+
+### Named arguments
+
+Label arguments at the call site:
+
+```sudo
+git::worktree.add(branch = issue.branchName, base = "origin/development")
+```
+
+Call-site labels are documentation that binds — they remove argument-order ambiguity, which matters when the interpreter infers a body. Named arguments are legal only inside argument lists.
+
+### Guards (`->`)
+
+A guard runs its consequence only when the condition holds. Read it as "then":
+
+```sudo
+!issue -> throw "ISSUE_ID did not resolve"
+gaps -> askUser(gaps)
+count > MAX -> warn "truncating to $MAX"
+```
+
+`condition -> statement` is statement position only — no chains, no `else`. The consequence may be a statement, a block, or a `require` / `warn`. For anything richer, use `if`. Match arms keep `=>` ("map to value"); guards use `->` ("do this consequence") — the visual split is intentional.
+
+### Decorators
+
+Decorators attach execution metadata to a declaration — who runs it, how failure is handled, whether it runs concurrently:
+
+```sudo
+@agent(general)
+gatherContext() { "Explore the codebase; return a Task." }
+
+@retry(3) @timeout(120)
+validate() { "Typecheck, lint, test; fix until green." }
+
+@parallel
+for each dimension in reviews { review(dimension) }
+```
+
+They stack, and they answer "how should this run" so the body can stay about "what it does". Decorators are allowed before interface declarations, function declarations (keyword and bare forms), and `for each` / `while` / `loop` statements.
+
+| Decorator | Meaning |
+|---|---|
+| `@agent(name)` | Run as the named subagent |
+| `@retry(n)` | Retry up to n times on failure |
+| `@timeout(seconds)` | Bound the run time |
+| `@parallel` | Run iterations / branches concurrently |
+| `@memo` | Memoize the result |
+| `@blocking(user)` | Pause for user interaction |
+
+Unknown decorators are legal and inferred — the vocabulary above is documented, not exhaustive.
+
+### Optional chaining and nullish default (`?.`, `??`)
+
+As in JavaScript, `?.` short-circuits on a null or absent value, and `??` supplies a default:
+
+```sudo
+parent = issue?.parent?.title ?? "none"
+```
+
+`??` sits at the same precedence tier as `||`. Together they collapse the most common data-shape hazard in LLM pipelines — absent fields — into a single line.
+
+### Spread and rest (`...`)
+
+JavaScript-style spread in literals and calls, and rest in patterns:
+
+```sudo
+[first, ...rest] = queue
+{ id, ...extras } = record
+config = { ...defaults, theme: "dark" }
+run(...steps)
+```
+
+Spread merges or collects a sequence; rest captures "everything else" when destructuring.
+
+### Pipe placeholder (`_`)
+
+Inside a pipe stage, `_` is the piped value — it drops the lambda head when exactly one subject flows through:
+
+```sudo
+open = issues |> filter(_.state == "open") |> map(_.title) |> take(5)
+```
+
+The placeholder is only meaningful inside a pipe stage; using `_` elsewhere is flagged by the LSP.
+
+### Formalized features
+
+These were already accepted by the grammar; 2.2 promotes them to documented language:
+
+- **Triple-quoted prose blocks** — `"""..."""` for long, multi-line prose or examples (no interpolation; the formatter leaves the body untouched).
+- **Resource sigils** — `@scope/path` names an external resource; decorators (`@name`) build on the same `@` sigil.
+- **Comma-grouped and money numerics** — `1,000,000` and `$100,000` parse as numbers.
+- **Optional parameters** — `arg?` marks a parameter as optional, alongside defaults (`arg = value`).
+- **Trailing commas** — legal in arrays, objects, and argument / parameter lists.
+- **`throw` and `return` statements** — `throw "issue not found"`, `return value`.
+
+### Gotcha: statement-leading `[` (ASI)
+
+SudoLang has the same automatic-semicolon-insertion hazard as JavaScript. A statement that starts with `[` (or `(`) immediately after an expression statement is parsed as indexing or a call that continues the previous line across the newline (this snippet is intentionally wrong, so it is not a `sudo` fence):
+
+```
+result = compute()
+[first, ...rest] = queue     // parsed as compute()[first, ...] — wrong
+```
+
+Terminate the previous statement with `;`, or reorder so the `[`-leading statement doesn't follow a bare expression:
+
+```sudo
+result = compute();
+[first, ...rest] = queue
+```
+
+---
+
+## 21. v2.1 Changes from v2.0
 
 v2.1 is the v2.0 spec, made **strict** for parser tooling. If you're upgrading:
 
@@ -619,7 +755,7 @@ The semantic meaning is unchanged — v2.1 is about making the structure parseab
 
 ---
 
-## 21. Full Example: AI RPG
+## 22. Full Example: AI RPG
 
 This complete program demonstrates interfaces, constraints, commands, pipes, loops, and natural language bodies working together:
 

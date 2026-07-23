@@ -10,11 +10,17 @@
 The grammar deliberately does not embed markdown. Validate markdown-hosted
 SudoLang by extracting fences (see `scripts/validate.sh`).
 
+**Markdown-with-fences is the preferred authoring form** (`.md` / `.sudo.md`);
+pure `.sudo` is for programs that need no surrounding prose. The LSP, the
+`validate.sh` gate, and CI all validate `.md` / `.sudo.md` by extracting and
+parsing each ` ```sudo ` fence.
+
 ## tree-sitter-sudolang (grammar)
 
-Located at `~/Workspace/sudolang/tree-sitter-sudolang`. The grammar is the
-single source of truth for what parses; `docs/grammar-specification.md` has
-sections that predate the final grammar — trust `grammar.js`.
+Located at `~/Workspace/sudolang/tree-sitter-sudolang`. Grammar version
+**0.3.0**, targeting the **SudoLang v2.2** dialect (a strict superset of v2.1).
+The grammar is the single source of truth for what parses; `docs/grammar-specification.md`
+has sections that predate the final grammar — trust `grammar.js`.
 
 ```sh
 cd ~/Workspace/sudolang/tree-sitter-sudolang
@@ -27,6 +33,11 @@ tree-sitter highlight file.sudo # check queries/highlights.scm
 - `tree-sitter` CLI is installed via npm globals (`~/.npm-global/bin`).
 - Queries: `highlights.scm`, `injections.scm` (fenced code → other grammars,
   e.g. mermaid/json/js), `locals.scm`, `tags.scm`.
+- `test/corpus/` covers v2.1 plus the v2.2 additions: `qualified.txt`,
+  `guards.txt`, `decorators.txt`, `optional.txt`, `spread.txt`, `placeholder.txt`.
+- `examples/` holds the canonical programs (`sudolang`, `riteway`, `autodux`,
+  `ai-rpg`, `vector-search`) and the 2.2 showcases `issue-to-pr.sudo` and
+  `showcase-2.2.sudo.md` (the latter demonstrates the md-first form).
 - Test corpus contract: every canonical example in `examples/` must produce
   zero ERROR/MISSING nodes. Grammar changes that break an example are wrong
   unless the spec is being intentionally revised (see `docs/proposals/`).

@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # validate.sh — parse-validate SudoLang sources against tree-sitter-sudolang.
 #
-#   validate.sh <file.sudo | file.md> [more files...]
+#   validate.sh <file.sudo | file.md | file.sudo.md> [more files...]
 #
-# .sudo files are parsed directly. Markdown files have every ```sudo /
-# ```sudolang / ```SudoLang fence extracted and parsed individually; failures
-# are reported with the fence's starting line in the host file.
+# .sudo files are parsed whole. Markdown files (.md / .sudo.md / .mdc — the
+# preferred, md-first authoring form) have every ```sudo / ```sudolang /
+# ```SudoLang fence extracted and parsed individually; failures are reported
+# with the fence's starting line in the host file. ```sudo-next fences are
+# deliberately skipped (they carry proposed, not-yet-landed syntax).
 #
 # Exit codes: 0 = all clean, 1 = parse failures, 2 = usage / environment error.
 # Env: SUDOLANG_GRAMMAR_DIR — grammar checkout (default ~/Workspace/sudolang/tree-sitter-sudolang)
