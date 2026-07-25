@@ -10,9 +10,19 @@ tree-sitter-sudolang ──crates.io dep──▶ sudolang-lsp ──binary on $
 
 ## One-time setup
 
-- GitHub repo secrets:
-  - `tree-sitter-sudolang`: `CARGO_REGISTRY_TOKEN`, `NPM_TOKEN`
-  - `sudolang-lsp`: `CARGO_REGISTRY_TOKEN`
+Publishing is authenticated by **OIDC trusted publishing** — CI exchanges
+a GitHub Actions identity token for a short-lived registry token. No
+token secrets exist anywhere. Configure once, in each registry's web UI:
+
+- **crates.io** (per crate, Settings → Trusted Publishing → GitHub):
+  - `tree-sitter-sudolang`: owner `dylan-gluck`, repo
+    `tree-sitter-sudolang`, workflow `release.yml`, no environment
+  - `sudolang-lsp`: owner `dylan-gluck`, repo `sudolang-lsp`,
+    workflow `release.yml`, no environment
+- **npmjs.com** (package `tree-sitter-sudolang` → Settings → Trusted
+  Publisher): GitHub Actions, org `dylan-gluck`, repo
+  `tree-sitter-sudolang`, workflow `release.yml`, allowed action
+  `npm publish`. Provenance is generated automatically.
 - The zed-sudolang registry PR (step 4) is manual the first time; later
   versions are a submodule bump in the same PR flow.
 
