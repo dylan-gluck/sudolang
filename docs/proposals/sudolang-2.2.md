@@ -3,10 +3,6 @@
 Status: **Draft 1** · Target: SudoLang v2.2 (strict superset of v2.1)
 Author: Dylan Navajas Gluck · 2026-07-23
 
-Fence convention in this document: ` ```sudo ` blocks parse under the v2.1
-grammar today; ` ```sudo-next ` blocks are **proposed** 2.2 syntax and are
-deliberately skipped by `validate.sh`.
-
 ---
 
 ## §1 Motivation
@@ -48,7 +44,7 @@ P5. **Additive only.** Every valid 2.1 program is a valid 2.2 program.
 
 ### §3.1 Qualified names — the capability layer (`::`)
 
-```sudo-next
+```sudo
 issue = mcp::linear.getIssue(ISSUE_ID)
 git::worktree.add({ branch: issue.branchName })
 result = fs::read(path) |> ai::summarize
@@ -73,7 +69,7 @@ capability/value distinction that authors keep trying to express.
 
 ### §3.2 Named arguments
 
-```sudo-next
+```sudo
 git::worktree.add(branch = issue.branchName, base = "origin/development")
 ```
 
@@ -92,7 +88,7 @@ object", which matters when the LLM infers the implementation.
 
 ### §3.3 Consequence arrow (guards)
 
-```sudo-next
+```sudo
 !issue -> throw "ISSUE_ID did not resolve"
 gaps -> askUser(gaps)
 count > MAX -> warn "truncating to $MAX"
@@ -113,11 +109,11 @@ guard's rule-like character inside control flow.
 
 ### §3.4 Decorators
 
-```sudo-next
+```sudo
 @agent(general)
 gatherContext() { "Explore the codebase; return a Task." }
 
-@retry(3) @timeout(120s)
+@retry(3) @timeout(120)
 validate() { "Typecheck, lint, test; fix until green." }
 
 @parallel
@@ -143,7 +139,7 @@ an order of magnitude more tokens.
 
 ### §3.5 Optional chaining and nullish default
 
-```sudo-next
+```sudo
 parent = issue?.parent?.title ?? "none"
 ```
 
@@ -157,7 +153,7 @@ token cost for the single most common data-shape hazard in LLM pipelines
 
 ### §3.6 Pipe placeholder
 
-```sudo-next
+```sudo
 open = issues |> filter(_.state == "open") |> map(_.title) |> take(5)
 ```
 
@@ -174,9 +170,9 @@ pure ceremony when there's exactly one subject flowing through.
 
 ### §3.7 Spread / rest
 
-```sudo-next
+```sudo
 config = { ...defaults, theme: "dark" }
-run(...steps)
+run(...steps);  // `;` required — a `[` on the next line would parse as indexing
 [first, ...rest] = queue
 ```
 
@@ -247,7 +243,7 @@ The issue→draft-PR workflow that motivated §1. **(a)** the author's
 instinctive draft — 6 parse errors; **(b)** valid v2.1 after rewrite;
 **(c)** proposed 2.2 — every instinctive construct now legal or improved:
 
-```sudo-next
+```sudo
 // Issue -> Draft PR — SudoLang v2.2 (proposed)
 
 fetchIssue() {
