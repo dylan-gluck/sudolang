@@ -38,11 +38,17 @@ Done {
   zed:    "grammar rev pinned to 0.3.1; LSP attaches to Markdown; Cargo.lock committed"
 }
 
+Released {
+  registries: "v0.3.1 live: crates.io (grammar + lsp), npm (grammar; 0.3.0 is broken — Node
+               binding never compiled — deprecate it if not done), GH releases with wasm + binaries"
+  auth:       "OIDC trusted publishing configured on crates.io (both crates) and npm — CI
+               publishes with NO token secrets; new packages still need one manual first publish"
+  registry:   "zed-industries/extensions PR #6961 submitted (sudolang @ 0.3.1) — awaiting merge"
+}
+
 Pending {
-  push:         "Nothing is pushed or tagged yet — see docs/release.md for the order"
-  secrets:      "Repo secrets needed once: CARGO_REGISTRY_TOKEN (both Rust repos), NPM_TOKEN (grammar)"
   install-test: "zed: install dev extension — visual verification (user-run; see warn below)"
-  registry:     "Submit zed-sudolang to zed-industries/extensions after grammar rev is pushed"
+  workspace:    "This superproject repo has no remote yet"
 }
 
 warn "Claude is blocked from writing to ~/Library/Application Support/Zed/ — dev-extension install tests must be run by the user."
