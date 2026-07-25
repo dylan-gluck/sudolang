@@ -1,26 +1,29 @@
 # SudoLang
 
-Workspace for the **SudoLang** language toolchain: a tree-sitter grammar, a
-language server, and a Zed editor extension, released in lockstep — one
-version across all packages (currently **v0.3.0**, targeting the
-**SudoLang v2.2** dialect).
+SudoLang is a pseudolanguage for instructing LLMs — a fake language with
+no rules, no compiler, and no runtime. The model is the interpreter. It
+earns its keep because intelligence is compression: an interface, a
+constraint block, and a few guards state intent that prose circles for
+paragraphs.
 
-[SudoLang](https://github.com/paralleldrive/sudolang-llm-support) is a
-pseudolanguage for instructing LLMs: interfaces, constraints, functions, and
-commands that read like a spec and run like a prompt. This workspace
-maintains a formalized dialect of it — strict block structure, a real
-grammar, and tooling that parses, lints, formats, and navigates it.
+This workspace formalizes that fake language just enough to hang real
+tooling on it: a dialect specification, a tree-sitter grammar, a language
+server, and a Zed extension. In practice that mostly means editor support —
+syntax highlighting, lints, and formatting for `sudo` code fences in
+markdown. The packages release in lockstep, one version across all three
+(currently **v0.3.1**, SudoLang **v2.2**).
 
 ## Packages
 
 | Package | What it is | Install |
 |---|---|---|
-| [tree-sitter-sudolang](https://github.com/dylan-gluck/tree-sitter-sudolang) | Parser (tree-sitter grammar) | `npm install tree-sitter-sudolang` · Cargo: `tree-sitter-sudolang = "0.3.0"` |
+| [tree-sitter-sudolang](https://github.com/dylan-gluck/tree-sitter-sudolang) | Parser (tree-sitter grammar) | `npm install tree-sitter-sudolang` · Cargo: `tree-sitter-sudolang = "0.3.1"` |
 | [sudolang-lsp](https://github.com/dylan-gluck/sudolang-lsp) | Language server (diagnostics, formatting, hover, completion, go-to-definition) | `cargo install sudolang-lsp` or [prebuilt binaries](https://github.com/dylan-gluck/sudolang-lsp/releases) |
 | [zed-sudolang](https://github.com/dylan-gluck/zed-sudolang) | Zed extension (highlighting, outline, LSP wiring) | Zed → `zed: extensions` → search **SudoLang** |
 
-The Zed extension discovers `sudolang-lsp` on `$PATH` — install the server
-once with cargo and everything lights up.
+The Zed extension resolves `sudolang-lsp` from `$PATH`; install the server
+once and both `.sudo` files and markdown fences get diagnostics, hover,
+and formatting.
 
 ## Authoring format
 
@@ -30,7 +33,7 @@ in fences; the tooling diagnoses, formats, and navigates the fences in
 place, and all fences of one document share a symbol table. Pure `.sudo`
 files hold whole-file programs with no surrounding prose.
 
-## A taste of the language
+## The dialect
 
 ```sudo
 # Issue triage — SudoLang 2.2
@@ -57,7 +60,7 @@ interface TriageAgent {
 }
 ```
 
-Highlights, all new in **v2.2** (a strict superset of v2.1):
+New in **v2.2** (a strict superset of v2.1):
 
 - **Qualified capability names** — `mcp::linear.getIssue(id)`: `::` names a
   capability namespace, `.` is member access.
@@ -114,6 +117,13 @@ cargo build --release --target wasm32-wasip1
 
 Releases are tag-driven and lockstep — see [docs/release.md](docs/release.md)
 for the ordered runbook (grammar → LSP → Zed → registry).
+
+## Origin
+
+SudoLang comes from Eric Elliott's article
+[SudoLang: A Powerful Pseudocode Programming Language for LLMs](https://medium.com/javascript-scene/sudolang-a-powerful-pseudocode-programming-language-for-llms-d64d42aa719b).
+This workspace is an independent formalization of the idea, built for
+tooling.
 
 ## License
 

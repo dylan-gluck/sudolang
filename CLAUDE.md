@@ -5,9 +5,9 @@
 // Versions are LOCKSTEP: one release = same version across all three packages.
 
 Packages {
-  tree-sitter-sudolang  // parser — grammar.js only, no external scanner, v0.3.0
-  sudolang-lsp          // LSP — tower-lsp + tree-sitter, markdown virtual docs, v0.3.0
-  zed-sudolang          // Zed extension — Rust cdylib, v0.3.0
+  tree-sitter-sudolang  // parser — grammar.js only, no external scanner, v0.3.1
+  sudolang-lsp          // LSP — tower-lsp + tree-sitter, markdown virtual docs, v0.3.1
+  zed-sudolang          // Zed extension — Rust cdylib, v0.3.1
 }
 
 # Dialect
@@ -35,7 +35,7 @@ FileTypes {
 Done {
   parser: "56/56 corpus tests; 6 examples (.sudo + .sudo.md) zero ERROR/MISSING; release CI"
   lsp:    "45/45 tests; markdown fences as virtual documents; 2.2 hovers/completions/lints"
-  zed:    "grammar rev pinned to 0.3.0; LSP attaches to Markdown; Cargo.lock committed"
+  zed:    "grammar rev pinned to 0.3.1; LSP attaches to Markdown; Cargo.lock committed"
 }
 
 Pending {
