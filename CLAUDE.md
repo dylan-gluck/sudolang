@@ -80,10 +80,17 @@ Process {
 
 ````sudo
 Formatter {
-  strategy: "Re-indent each line by the count of `block` ancestors at its first non-ws byte"
+  strategy: "Re-indent each line by the count of DISTINCT ROWS on which its enclosing
+             indent-bearing ancestors opened. Counting rows (not nodes) collapses stacked
+             openers: `describe(\"u\", () => {` indents its body once, not twice."
+  kinds:    "block, object_literal, array_literal, object_pattern, array_pattern,
+             argument_list, parameter_list, match_expression, pipe_expression"
+  skip:     "A node whose opening delimiter starts the line, or whose closing delimiter the
+             line consists of (`}`, `})`, `},` all dedent; a pipe continuation does not)."
 
   Constraints {
     "Never reorder tokens; never split or join lines"
+    "All 6 canonical examples must format to themselves — formatter_test asserts it"
     "Skip interior of block_comment / triple_quoted_block / double_string / template_string"
     "Pure .sudo: refuse when tree has any ERROR/MISSING node"
     "Markdown: format each clean ```sudo fence in place; skip broken fences; never touch prose"
@@ -114,9 +121,6 @@ warn "Capitalised `Constraint` / `Constraints` ARE grammar keywords; Requirement
 
 warn "The grammar ACCEPTS try/catch (binding without parens: `catch e { }`) and block-body
       lambdas — the 2.2 proposal defers try/catch as language; prefer require + @retry."
-
-warn "Formatter treats only `block` as indent-bearing, so multi-line object/array literals
-      and pipe continuations get flattened to their statement depth. Known, documented."
 
 warn "grammar.js TS errors (`Cannot find name 'seq'`, etc.) are noise — missing @types/tree-sitter-cli, no effect on generation."
 ```

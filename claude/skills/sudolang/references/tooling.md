@@ -37,7 +37,7 @@ The Rust language server builds on `tower-lsp` and the grammar. The binary is `s
 | Capability  | Behavior                                                                                                                            |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | Diagnostics | ERROR and MISSING nodes, malformed modifiers, broken `${}` interpolations, and the 2.2 placeholder-misuse lint                       |
-| Formatting  | A deterministic re-indent at two spaces per block depth. It trims trailing space and collapses blank runs. It never reorders tokens. It refuses to format a pure `.sudo` file that has parse errors. |
+| Formatting  | A deterministic re-indent at two spaces per indent level. Blocks, object and array literals, patterns, argument and parameter lists, `match` braces, and multi-line pipe chains each add a level. It trims trailing space and collapses blank runs. It never reorders tokens. It refuses to format a pure `.sudo` file that has parse errors. |
 | Hover       | Keyword, decorator, and capability blurbs. In-document declaration signatures, as `sudo` fences                                      |
 | Completion  | Keywords, the 2.2 decorators, every named declaration in the document, and every capability namespace it uses. Triggers are `.` `/` `$` `:` `@` |
 | Definition  | Same-document jumps, across every fence of one markdown document. SudoLang has no module system, so there is no cross-file jump.     |
