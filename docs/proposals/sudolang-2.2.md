@@ -1,16 +1,15 @@
-# SudoLang 2.2 — Expressiveness, Shorthand, and the Capability Layer
+# SudoLang 2.2: expressiveness, shorthand, and the capability layer
 
-Status: **Draft 1** · Target: SudoLang v2.2 (strict superset of v2.1)
+Status: **accepted and shipped**. Grammar 0.3.0 landed the productions, and 0.3.2 is the current release. Target: SudoLang v2.2, a strict superset of v2.1.
 Author: Dylan Navajas Gluck · 2026-07-23
+
+This document is the design record. For the language as it stands, read the [user guide](../user-guide.md) and the [grammar specification](../grammar-specification.md).
 
 ---
 
 ## §1 Motivation
 
-v2.1 made the language parseable; the cost was rejecting constructs that
-fluent authors produce instinctively. Field evidence (authoring a real
-agent-workflow command, 2026-07-23): six constructs written naturally in a
-first draft, all rejected by the grammar —
+Version 2.1 made the language parseable. The cost was a grammar that rejects constructs fluent authors write by instinct. The field evidence comes from one real agent-workflow command, written on 2026-07-23. Six constructs appeared in the first draft, and the grammar rejected all six.
 
 | Written instinctively              | v2.1 verdict | Author's intent                        |
 | ---------------------------------- | ------------ | -------------------------------------- |
@@ -19,30 +18,25 @@ first draft, all rejected by the grammar —
 | `!issue -> throw(reason)`          | ERROR        | guard: "if this, then that"            |
 | `try { } catch (e) { }`            | ERROR        | scoped failure policy                  |
 | `new Task { ... }`                 | ERROR        | construct a typed value                |
-| `[...requirements]`                | ERROR        | collect/merge a sequence               |
+| `[...requirements]`                | ERROR        | collect or merge a sequence            |
 
-Two of these (`new`, `try/catch`) have better idiomatic answers that v2.1
-already provides, and the rewrite proved it (§5). The other four are genuine
-expressiveness gaps: the author was reaching for semantics the language has no
-syntax for. 2.2 closes those gaps and formalizes latent grammar features that
-exist in `grammar.js` but not in the spec.
+Two of the six, `new` and `try`/`catch`, have better idiomatic answers that v2.1 already supplies. The rewrite proved it, and §5 records the result. The other four are real expressiveness gaps. The author reached for semantics that the language had no syntax for. Version 2.2 closes those gaps. It also formalizes the latent features that live in `grammar.js` but not in the specification.
 
 ## §2 Design principles
 
-P1. **LLM-first.** Syntax exists to sharpen the model's interpretation, not to
-compile. A feature is justified by the intent it disambiguates.
-P2. **Every token must earn its place.** New syntax must compress intent —
-fewer tokens than the v2.1 workaround for the same meaning, or it doesn't
-ship (measured in §4).
-P3. **Parseable without heroics.** LR(1)-friendly, no external scanner,
-canonical examples keep parsing with zero ERROR/MISSING nodes.
-P4. **JS-gradient.** When authors guess syntax, they guess JavaScript. Prefer
-forms a JS-literate author writes correctly on the first try.
-P5. **Additive only.** Every valid 2.1 program is a valid 2.2 program.
+**P1. LLM-first.** Syntax sharpens the interpretation of the model. It does not compile. A feature earns its place by the intent it disambiguates.
+
+**P2. Every token must earn its place.** New syntax must compress intent. It must cost fewer tokens than the v2.1 workaround for the same meaning, or it does not ship. Section §4 measures this.
+
+**P3. Parseable without heroics.** The grammar stays LR(1)-friendly, with no external scanner. Every canonical example keeps parsing with zero ERROR and zero MISSING nodes.
+
+**P4. JS-gradient.** When an author guesses syntax, the guess is JavaScript. Prefer the form a JS-literate author writes correctly on the first try.
+
+**P5. Additive only.** Every valid 2.1 program is a valid 2.2 program.
 
 ## §3 Proposals
 
-### §3.1 Qualified names — the capability layer (`::`)
+### §3.1 Qualified names: the capability layer (`::`)
 
 ```sudo
 issue = mcp::linear.getIssue(ISSUE_ID)
@@ -50,22 +44,13 @@ git::worktree.add({ branch: issue.branchName })
 result = fs::read(path) |> ai::summarize
 ```
 
-**Semantics.** `::` addresses a _capability namespace_ — tools, MCP servers,
-agents, external systems — while `.` remains structural member access on
-values. The distinction tells the LLM "resolve this against the environment"
-vs "read this off a value". In agent contexts this maps 1:1 onto tool
-namespaces (`mcp::linear`, `git::`, `fs::`) — SudoLang becomes a natural
-orchestration surface without a module system.
+**Semantics.** The `::` operator addresses a _capability namespace_: a tool, an MCP server, an agent, or an external system. The `.` operator stays structural member access on a value. The split tells the LLM which of two things to do. Either resolve the name against the environment, or read the name off a value. In an agent context this maps one-to-one onto tool namespaces such as `mcp::linear`, `git::`, and `fs::`. SudoLang becomes an orchestration surface without a module system.
 
-**Grammar.** `qualified_identifier ::= identifier ("::" identifier)+`, legal
-wherever `identifier` heads a member/call expression. No conflicts: `::` is
-currently always an error. Highlight as `@namespace`.
+**Grammar.** `qualified_identifier ::= identifier ("::" identifier)+`. It is legal wherever `identifier` heads a member expression or a call. There is no conflict, because `::` is always an error today. Highlight it as `@namespace`.
 
-**Tooling.** LSP completion segments by namespace; hover resolves the
-capability. `tags.scm` gains a namespace capture.
+**Tooling.** LSP completion offers each namespace the document uses. Hover resolves the capability. `tags.scm` captures a qualified path in a call.
 
-**v2.1 workaround.** Flat dot-paths (`linear.getIssue`) — loses the
-capability/value distinction that authors keep trying to express.
+**v2.1 workaround.** A flat dot-path such as `linear.getIssue`. This loses the capability-against-value distinction that authors keep trying to express.
 
 ### §3.2 Named arguments
 
@@ -73,18 +58,11 @@ capability/value distinction that authors keep trying to express.
 git::worktree.add(branch = issue.branchName, base = "origin/development")
 ```
 
-**Semantics.** Call-site labels, symmetric with parameter defaults
-(`f(a = 1)` declares; `f(a = 2)` invokes). For an LLM interpreter, labels at
-the call site are _documentation that binds_ — they remove argument-order
-ambiguity, which is a real failure mode when bodies are inferred.
+**Semantics.** A call-site label, symmetric with a parameter default. The form `f(a = 1)` declares, and `f(a = 2)` invokes. For an LLM interpreter, a label at the call site is _documentation that binds_. It removes argument-order ambiguity, which is a real failure mode when the interpreter infers the body.
 
-**Grammar.** `argument ::= expression | identifier "=" expression`. One
-conflict with assignment-as-expression inside argument lists, resolved by
-precedence (assignment is already illegal in argument position).
+**Grammar.** `argument ::= expression | identifier "=" expression`. There is one conflict with assignment-as-expression inside an argument list. Precedence resolves it, because assignment is already illegal in argument position.
 
-**v2.1 workaround.** Object-literal args: `f({ branch: x, base: y })` — two
-extra tokens, and it changes the callee's shape from "two params" to "one
-object", which matters when the LLM infers the implementation.
+**v2.1 workaround.** An object-literal argument: `f({ branch: x, base: y })`. This costs two extra tokens. It also changes the shape of the callee from two parameters to one object, which matters when the LLM infers the implementation.
 
 ### §3.3 Consequence arrow (guards)
 
@@ -94,18 +72,11 @@ gaps -> askUser(gaps)
 count > MAX -> warn "truncating to $MAX"
 ```
 
-**Semantics.** `condition -> statement`: evaluate the consequence iff the
-condition holds. Reads as "then". Statement position only — no chains, no
-`else` (use `if` for anything richer). This is the guard idiom every rule
-engine and every prompt author reaches for.
+**Semantics.** The form `condition -> statement` runs the consequence only when the condition holds. Read it as "then". It works in statement position only. It does not chain, and it has no `else`. For anything richer, use `if`. This is the guard idiom that every rule engine and every prompt author reaches for.
 
-**Grammar.** `guard_statement ::= expression "->" statement`. `->` is a new
-token; no collision (`=>` stays lambda/match-arm). Match arms keep `=>` —
-the visual distinction between "map to value" (`=>`) and "do consequence"
-(`->`) is intentional.
+**Grammar.** `guard_statement ::= expression "->" statement`. The `->` token is new, and it collides with nothing. The `=>` token stays the lambda and match-arm arrow. A match arm keeps `=>` on purpose. The visual split between "map to value" and "do consequence" is deliberate.
 
-**v2.1 workaround.** `if (cond) statement` — 3 tokens heavier and buries the
-guard's rule-like character inside control flow.
+**v2.1 workaround.** `if (cond) statement`. This costs three more tokens, and it buries the rule-like character of the guard inside control flow.
 
 ### §3.4 Decorators
 
@@ -120,22 +91,11 @@ validate() { "Typecheck, lint, test; fix until green." }
 for each dimension in reviews { review(dimension) }
 ```
 
-**Semantics.** Declaration metadata the interpreter honors as _execution
-semantics_: who runs it (`@agent`), how failure is handled (`@retry`),
-concurrency (`@parallel`), memoization (`@memo`), interactivity
-(`@blocking(user)`). Decorators answer "how should this run" so the body can
-stay about "what it does" — exactly the split that keeps SudoLang programs
-short. Unknown decorators are legal and inferred (referential omnipotence
-extends to metadata).
+**Semantics.** A decorator is declaration metadata that the interpreter honors as _execution semantics_. It states who runs the unit (`@agent`), how the interpreter handles failure (`@retry`), the concurrency (`@parallel`), the memoization (`@memo`), and the interactivity (`@blocking(user)`). A decorator answers "how should this run", so the body stays about "what it does". That split is what keeps a SudoLang program short. An unknown decorator is legal, and the interpreter infers it. Referential omnipotence reaches metadata too.
 
-**Grammar.** The `@` sigil already lexes (`sigil_identifier` accepts
-`@name/sub-path`). Add `decorator ::= "@" identifier optional(argument_list)`
-and `repeat($.decorator)` before interface/function/command declarations and
-loop statements. Highlight as `@attribute`.
+**Grammar.** The `@` sigil already lexes, because `sigil_identifier` accepts `@name/sub-path`. Add `decorator ::= "@" identifier optional(argument_list)`, and `repeat($.decorator)` before an interface declaration, a function declaration, a command declaration, and a loop statement. Highlight it as `@attribute`.
 
-**v2.1 workaround.** Modifier lists (`fn():retry=3;`) cover call-site tuning
-but cannot annotate declarations, and prose ("run this as a subagent") costs
-an order of magnitude more tokens.
+**v2.1 workaround.** A modifier list such as `fn():retry=3;`. A modifier tunes a call site, and it cannot annotate a declaration. Prose such as "run this as a subagent" costs an order of magnitude more tokens.
 
 ### §3.5 Optional chaining and nullish default
 
@@ -143,13 +103,9 @@ an order of magnitude more tokens.
 parent = issue?.parent?.title ?? "none"
 ```
 
-**Semantics/Grammar.** As in JS: `?.` short-circuits on null/absent, `??`
-supplies the default. Trivial additions to the expression grammar; `?` after
-a parameter name already exists, so the token family is established.
+**Semantics and grammar.** These work as they do in JavaScript. The `?.` operator short-circuits on a null or absent value, and `??` supplies the default. Both are small additions to the expression grammar. A `?` after a parameter name already exists, so the grammar already carries the token family.
 
-**v2.1 workaround.** `if (exists(issue.parent)) ... else ...` — five-fold
-token cost for the single most common data-shape hazard in LLM pipelines
-(absent fields).
+**v2.1 workaround.** `if (exists(issue.parent)) ... else ...`. This is a fivefold token cost for the most common data-shape hazard in an LLM pipeline, an absent field.
 
 ### §3.6 Pipe placeholder
 
@@ -157,18 +113,13 @@ token cost for the single most common data-shape hazard in LLM pipelines
 open = issues |> filter(_.state == "open") |> map(_.title) |> take(5)
 ```
 
-**Semantics.** `_` inside a pipe-stage call is the piped value. Removes the
-lambda head that today's form requires and keeps pipelines point-free.
-Illegal outside a pipe stage.
+**Semantics.** Inside a pipe-stage call, `_` is the piped value. It removes the lambda head that the current form needs, and it keeps a pipeline point-free. It is illegal outside a pipe stage.
 
-**Grammar.** `placeholder ::= "_"` as a primary expression, valid only within
-`pipe_expression` right-hand sides (enforced by a scoped rule, or accepted
-grammar-wide and linted — implementer's choice; the LSP can diagnose misuse).
+**Grammar.** `placeholder ::= "_"` as a primary expression, valid only on the right-hand side of a `pipe_expression`. The implementer chooses between a scoped rule and a grammar-wide accept with a lint. The shipped grammar takes the second path, and the LSP diagnoses misuse.
 
-**v2.1 workaround.** `filter(x => x.state == "open")` — the lambda head is
-pure ceremony when there's exactly one subject flowing through.
+**v2.1 workaround.** `filter(x => x.state == "open")`. The lambda head is pure ceremony when exactly one subject flows through.
 
-### §3.7 Spread / rest
+### §3.7 Spread and rest
 
 ```sudo
 config = { ...defaults, theme: "dark" }
@@ -176,22 +127,24 @@ run(...steps);  // `;` required — a `[` on the next line would parse as indexi
 [first, ...rest] = queue
 ```
 
-**Semantics/Grammar.** JS spread in literals, calls, and patterns. Authors
-write it unprompted (§1); the merge/collect intent is otherwise prose.
+**Semantics and grammar.** JavaScript spread in a literal, a call, and a pattern. Authors write it without prompting, as §1 shows. Without it, the merge-or-collect intent falls back to prose.
 
 ### §3.8 Formalize latent v2.1 features
 
-Already in `grammar.js`, absent from the spec — 2.2 promotes them to
-documented language: triple-quoted `"""` prose blocks, `@scope/path` resource
-sigils (which §3.4 builds on), comma-grouped and money numerics
-(`1,000,000`, `$100,000`), optional parameters (`arg?`), trailing commas,
-`throw`/`return` statements.
+These forms are already in `grammar.js` and absent from the specification. Version 2.2 promotes them to documented language:
+
+- triple-quoted `"""` prose blocks
+- `@scope/path` resource sigils, which §3.4 builds on
+- comma-grouped and money numerics: `1,000,000` and `$100,000`
+- optional parameters: `arg?`
+- trailing commas
+- `throw` and `return` statements
 
 ## §4 Token economy
 
-Character counts as a token proxy, same intent expressed both ways:
+The table uses a character count as a token proxy. Each row states the same intent both ways.
 
-| Intent          | v2.1 idiom                                   | 2.2                         | Δ                 |
+| Intent          | v2.1 idiom                                   | 2.2                         | Delta             |
 | --------------- | -------------------------------------------- | --------------------------- | ----------------- |
 | Guard           | `if (gaps) askUser(gaps)`                    | `gaps -> askUser(gaps)`     | −4                |
 | Labeled call    | `f({ branch: b, base: d })`                  | `f(branch = b, base = d)`   | −2, flatter shape |
@@ -200,51 +153,39 @@ Character counts as a token proxy, same intent expressed both ways:
 | Run-as-agent    | `"Run gatherContext as a general subagent."` | `@agent(general)`           | −27               |
 | Capability call | `"Use the linear MCP to fetch the issue."`   | `mcp::linear.getIssue(id)`  | −16, and binding  |
 
-The wins compound: a realistic workflow program (§8 appendix) drops ~15%
-tokens while gaining precision — the opposite trade v2.0→v2.1 made, now
-recovered with structure instead of prose.
+The wins compound. The realistic workflow program in §8 drops about 15 percent of its tokens and gains precision. This reverses the trade that v2.0 made for v2.1, and it recovers the loss with structure instead of prose.
 
 ## §5 Considered and deferred
 
-- **`try` / `catch`.** Authors write it (§1), but the constraint-first
-  rewrite of the motivating program was _better_ — `require` gates plus a
-  declarative failure policy read clearer and compress smaller than paired
-  braces. `@retry` (§3.4) covers the recoverable half. Deferred; revisit if
-  guards + decorators still leave a gap.
-- **`new` / classes.** Stays lint-prohibited. Interfaces + inference cover
-  construction; `new` drags inheritance semantics the language rejects.
-- **Modules / imports.** `::` (§3.1) provides the namespace story without a
-  file-resolution system a pseudolanguage can't honor.
-- **Static types.** Interfaces + inference remain the contract; annotations
-  would double token cost for marginal disambiguation.
+**`try` and `catch`.** Authors write both, as §1 shows. The constraint-first rewrite of the motivating program was _better_. A `require` gate plus a declarative failure policy reads clearer and compresses smaller than paired braces. The `@retry` decorator in §3.4 covers the recoverable half.
+
+Deferred. Revisit if guards and decorators still leave a gap. The shipped grammar accepts `try` and `catch` for tolerance, so a JavaScript-literate draft still parses.
+
+**`new` and classes.** These stay lint-prohibited. Interfaces and inference cover construction. The `new` keyword drags inheritance semantics that the language rejects.
+
+**Modules and imports.** The `::` operator in §3.1 supplies the namespace story. It does so without a file-resolution system that a pseudolanguage cannot honor.
+
+**Static types.** Interfaces and inference stay the contract. Annotations would double the token cost for marginal disambiguation.
 
 ## §6 Compatibility
 
-Additive throughout (P5): every canonical example parses unchanged. New
-tokens (`::`, `->`, `?.`, `??`, `...`, decorator position) are all illegal in
-v2.1, so no reinterpretation of existing programs is possible. Version the
-grammar 0.3.0; keep the corpus green.
+Every change is additive, per P5. Every canonical example parses unchanged. Each new token is illegal in v2.1, which covers `::`, `->`, `?.`, `??`, `...`, and the decorator position. No existing program can change meaning. The grammar carried this work in version 0.3.0, and the corpus stayed green.
 
 ## §7 Implementation plan
 
-1. `tree-sitter-sudolang`: tokens + rules per §3, corpus files
-   `qualified.txt`, `guards.txt`, `decorators.txt`, `optional.txt`,
-   `spread.txt`, `placeholder.txt`; extend `examples/` with a 2.2 showcase.
-2. `sudolang-lsp`: namespace-aware completion/hover (§3.1), decorator blurbs
-   (§3.4), placeholder-misuse diagnostic (§3.6).
-3. Docs: fold §3.8 into the user guide now (it's true today); cheatsheet 2.2
-   column; update the `sudolang` skill's gotchas table as items land.
-4. `zed-sudolang`: bump grammar revision, highlight `@namespace` /
-   `@attribute`.
+All four steps landed in the 0.3.x line.
 
-## §8 Appendix — motivating program, three ways
+1. `tree-sitter-sudolang`: the tokens and rules from §3, with corpus files `qualified.txt`, `guards.txt`, `decorators.txt`, `optional.txt`, `spread.txt`, and `placeholder.txt`. The `examples/` directory gained a 2.2 showcase.
+2. `sudolang-lsp`: namespace-aware completion and hover for §3.1, decorator blurbs and decorator completion for §3.4, and the placeholder-misuse diagnostic for §3.6.
+3. Docs: §3.8 folded into the user guide, a 2.2 section in the cheatsheet, and an updated gotchas table in the `sudolang` skill.
+4. `zed-sudolang`: the grammar revision bumped, with `@namespace` and `@attribute` highlighting.
 
-The issue→draft-PR workflow that motivated §1. **(a)** the author's
-instinctive draft — 6 parse errors; **(b)** valid v2.1 after rewrite;
-**(c)** proposed 2.2 — every instinctive construct now legal or improved:
+## §8 Appendix: the motivating program
+
+This is the issue-to-draft-PR workflow that motivated §1. The author's instinctive draft produced six parse errors. A rewrite made it valid v2.1. The version below is 2.2, where every instinctive construct is now legal or better.
 
 ```sudo
-// Issue -> Draft PR — SudoLang v2.2 (proposed)
+// Issue -> Draft PR — SudoLang v2.2
 
 fetchIssue() {
   issue = mcp::linear.getIssue(ISSUE_ID)
@@ -280,7 +221,7 @@ implement() {
 validate() {
   "Typecheck, lint, test; fix and re-run until green."
   for each req in task.requirements, collectEvidence(req)
-  req.evidence ?? warn "surface the gap in the PR description"
+  evidence = req?.evidence ?? warn "surface the gap in the PR description"
 }
 
 draftPR() {
@@ -297,7 +238,6 @@ fetchIssue() |> createWorktree |> gatherContext |> planImplementation
   |> clarificationGate |> implement |> validate |> draftPR
 ```
 
-Versus (b), this drops the object-literal ceremony, the `if` wrappers, and
-every prose line that existed only to say _how_ a step runs — while (a)'s
-instincts now parse. That is the 2.2 thesis: the language should be strict
-_and_ shaped like what fluent authors already write.
+Against the valid v2.1 rewrite, this version drops the object-literal ceremony and the `if` wrappers. It also drops every prose line that existed only to say _how_ a step runs. The instincts in the first draft now parse.
+
+That is the 2.2 thesis. The language should be strict _and_ shaped like what fluent authors already write.

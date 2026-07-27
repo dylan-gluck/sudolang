@@ -1,11 +1,8 @@
-# SudoLang v2.2 — Syntax Reference
+# SudoLang v2.2 syntax reference
 
-Condensed from `docs/cheatsheet.md`, `docs/user-guide.md`, and (authoritatively)
-`tree-sitter-sudolang/grammar.js`. Everything here parses clean. v2.2 is a strict
-superset of v2.1 — the v2.1 constructs below are unchanged; the additions are
-under [SudoLang 2.2 additions](#sudolang-22-additions).
+Condensed from `docs/cheatsheet.md`, `docs/user-guide.md`, and `tree-sitter-sudolang/grammar.js`. The grammar is the authority. Everything here parses clean. Version 2.2 is a strict superset of v2.1, so the v2.1 constructs below are unchanged. The [SudoLang 2.2 additions](#sudolang-22-additions) section holds the new syntax.
 
-## Comments & prose
+## Comments and prose
 
 ```sudo
 // line comment
@@ -32,7 +29,7 @@ sig = $name              // $ sigil identifier
 ref = @scope/path-name   // @ sigil with /-separated path segments
 ```
 
-## Strings & interpolation
+## Strings and interpolation
 
 ```sudo
 "Hello, $name"           // identifier interpolation
@@ -41,24 +38,29 @@ ref = @scope/path-name   // @ sigil with /-separated path segments
 `backtick template ${x}` // equivalent semantics
 ```
 
-## Operators (high → low precedence)
+## Operators, high to low precedence
 
 ```
-.  ()  []                 member / call / index
-:mod=val;                 modifier list (binds to the call)
+::                        capability namespace (2.2)
+.  ?.  []                 member / optional member / index
+:mod=val;                 modifier list (binds to the expression)
+()                        call
 !  - (unary)              prefix
 ^                         exponent (right-assoc)
 *  /  %                   multiplicative
 +  -                      additive
 ..                        range (1..10 inclusive)
-union  intersection       set ops (cap/cup deprecated aliases)
+union  intersection       set ops
 <  >  <=  >=              comparison
 ==  !=                    equality
 &&                        AND
-||  xor                   OR
+||  ??  xor               OR / nullish default (2.2) / XOR
 =  +=  -=  *=  /=         assignment (right-assoc)
+=>                        arrow (lambda, match arm)
 |>                        pipe (lowest)
 ```
+
+The `->` guard arrow is not an expression operator. It joins a condition to a consequence in statement position. The deprecated `cap` and `cup` aliases are not in the grammar.
 
 ## Variables, destructuring, assignment
 
@@ -71,8 +73,7 @@ obj.prop = 5
 arr[0] = "first"
 ```
 
-(Destructuring targets lead so the `[`-line isn't read as indexing a prior
-expression — see the ASI gotcha under [SudoLang 2.2 additions](#sudolang-22-additions).)
+Lead with the destructuring targets, so the `[`-line does not read as an index on a previous expression. See the ASI gotcha under [SudoLang 2.2 additions](#sudolang-22-additions).
 
 ## Conditionals
 
@@ -100,23 +101,25 @@ fn inferred                              // signature only — body inferred
 function greet(name);                    // keyword + params, no body
 function add(x, y) { return x + y }      // full definition
 chunk() { "Chunk the text." }            // bare-name + block (block REQUIRED)
-f = x => x + 1                           // arrow function (expression body only)
+f = x => x + 1                           // arrow function, expression body
+g = x => { log(x) }                      // arrow function, block body
 withDefaults(a = 1, b?) { log(a, b) }    // defaults and optional params
 pick({ name, age }) { name }             // destructuring params
 ```
 
-- The bare-name form requires a block — that's what disambiguates it from a
-  call. `chunk()` alone is a call; `chunk() { ... }` is a declaration.
+- The bare-name form needs a block. That is what separates it from a call. `chunk()` alone is a call. `chunk() { ... }` is a declaration.
 - `return` and `throw` are statements: `throw "issue not found"`.
 
 ## Modifiers
 
-Post-fix tuning on calls/signatures; semicolon terminates the list:
+A modifier tunes an expression. It follows a colon, and a semicolon ends the list.
 
 ```sudo
 explain(topic):length=short, detail=simple;
 log(results):format="json"
 ```
+
+A modifier value is an identifier, a string, a number, or a boolean. Quote a phrase: write `format="json output"`, not `format=json output`.
 
 ## Interfaces
 
@@ -135,7 +138,7 @@ Player {                    // `interface` keyword optional
 }
 ```
 
-Composition over inheritance. `class`, `extends`, `new` are lint-prohibited.
+Prefer composition over inheritance. `class`, `extends`, and `new` are lint-prohibited. A `new Task { }` line parses, and it parses wrong. It becomes a bare `new` expression plus an interface declaration.
 
 ## Constraints, require, warn
 
@@ -150,9 +153,9 @@ require "users must be over 13"             // hard gate — throw on violation
 warn "name should be defined"               // soft guidance
 ```
 
-Error handling is constraint-first: there is no try/catch. State the failure
-policy declaratively ("On unrecoverable failure: stop and report — never
-proceed") and gate steps with `require`.
+Error handling is constraint-first. The grammar accepts `try` and `catch` for tolerance, and it binds the catch variable without parentheses (`catch e { }`). Version 2.2 defers `try` and `catch` as language. Prefer a declarative failure policy such as "On unrecoverable failure: stop and report, never proceed", a `require` gate on each step, and `@retry(n)` for the recoverable half.
+
+Only the four `constraint` spellings are keywords: `constraint`, `Constraint`, `constraints`, and `Constraints`. `Requirements`, `Options`, `Lint`, and `State` are not keywords. They parse as interface declarations.
 
 ## Commands
 
@@ -181,14 +184,17 @@ results = query() |> filter(relevant) |> take(5)
 
 ## Referential omnipotence
 
-Undeclared functions are legal and inferred from name + context. Common
-inferred stdlib: `ask log list emit run explain transpile(lang) convert wrap
-escape concat sort sortBy filter map find groupBy join split trim reverse
-unique flatten merge pick pluck zip take takeLast skip slice count min max`.
+An undeclared function is legal, and the interpreter infers it from the name and the context. The common inferred library is:
+
+```
+ask log list emit run explain transpile(lang) convert wrap escape
+concat sort sortBy filter map find groupBy join split trim reverse
+unique flatten merge pick pluck zip take takeLast skip slice count min max
+```
 
 ## SudoLang 2.2 additions
 
-Strict superset of v2.1 — all of the above still parses. New syntax:
+Version 2.2 is a strict superset of v2.1, so everything above still parses. The new syntax is:
 
 ```sudo
 mcp::linear.getIssue(id)          // :: — capability namespace; . stays member access
@@ -210,27 +216,15 @@ run(...steps)                     // spread in calls
 open = issues |> filter(_.state == "open") |> map(_.title)   // _ = piped value
 ```
 
-- **`::`** addresses a capability namespace (tools, MCP servers, agents); `.`
-  remains structural member access on values. Both chain: `mcp::linear.getIssue(id)`.
-- **Named arguments** are call-site labels, legal only inside argument lists.
-- **Guards** (`->`) run the consequence iff the condition holds — statement
-  position only, no chains, no `else` (reach for `if` for anything richer). Match
-  arms keep `=>`; the `->` vs `=>` split is intentional.
-- **Decorators** attach execution metadata; they stack and precede interface /
-  function (keyword and bare) declarations and `for each` / `while` / `loop`.
-  Vocabulary: `@agent(name)`, `@retry(n)`, `@timeout(seconds)`, `@parallel`,
-  `@memo`, `@blocking(user)`. Unknown decorators are legal and inferred.
-- **`?.`** short-circuits on null/absent; **`??`** supplies a default (same
-  precedence tier as `||`).
-- **`...`** spreads in literals and calls, and gathers as rest in array/object
-  patterns.
-- **`_`** is the piped value inside a pipe stage — it parses as a plain
-  identifier everywhere, but is only meaningful in a pipe; the LSP flags misuse.
+- **`::`** addresses a capability namespace, such as a tool, an MCP server, or an agent. The `.` operator stays structural member access on a value. Both chain: `mcp::linear.getIssue(id)`.
+- **Named arguments** are call-site labels. They are legal only inside an argument list.
+- **Guards** (`->`) run the consequence only when the condition holds. They work in statement position only, with no chains and no `else`. For anything richer, use `if`. A match arm keeps `=>`, and the split between `->` and `=>` is deliberate.
+- **Decorators** attach execution metadata. They stack, and they go before an interface declaration, a function declaration in either form, and a `for each`, `while`, or `loop` statement. The documented vocabulary is `@agent(name)`, `@retry(n)`, `@timeout(seconds)`, `@parallel`, `@memo`, and `@blocking(user)`. An unknown decorator is legal, and the interpreter infers it.
+- **`?.`** short-circuits on a null or absent value. **`??`** supplies a default, at the same precedence tier as `||`.
+- **`...`** spreads in a literal and a call, and it gathers as rest in an array or object pattern.
+- **`_`** is the piped value inside a pipe stage. It parses as a plain identifier everywhere, and it means something only in a pipe. The LSP flags misuse.
 
-**ASI gotcha.** As in JavaScript, a statement starting with `[` (or `(`) right
-after an expression statement is parsed as indexing/calling the previous line
-across the newline. Terminate the prior statement with `;`, or put the
-bracket-leading statement first.
+**ASI gotcha.** Put a statement that starts with `[` or `(` right after an expression statement. The parser then reads an index or a call across the newline. End the previous statement with `;`, or put the bracket-leading statement first.
 
 ## Program skeleton
 
@@ -256,12 +250,12 @@ ProgramName {
 stepOne() |> stepTwo    // or: /go
 ```
 
-## v2.0 → v2.1 strict diffs
+## v2.0 to v2.1 strict differences
 
-| v2.0 allowed | v2.1 requires |
-|---|---|
-| Bare prose anywhere | String literals / comments / `#` headings only |
-| Multi-word identifiers (`Start game`) | Single-word (`StartGame`) |
-| Bare prose constraints | `"String literal"` constraints |
-| Inline markdown (bold, lists, tables) | Not parsed — prose strings or host-markdown fences |
-| Markdown headings parsed | `#` heading markers, outline-only |
+| v2.0 allowed                          | v2.1 requires                                          |
+| ------------------------------------- | ------------------------------------------------------ |
+| Bare prose anywhere                   | String literals, comments, or `#` headings only        |
+| Multi-word identifiers (`Start game`) | One word (`StartGame`)                                 |
+| Bare prose constraints                | `"String literal"` constraints                         |
+| Inline markdown (bold, lists, tables) | Not parsed. Use a prose string or a host markdown fence |
+| Parsed markdown headings              | `#` heading markers, for the outline only              |

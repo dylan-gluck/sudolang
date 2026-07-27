@@ -1,7 +1,8 @@
-# Release runbook — coordinated cross-package rollout
+# Release runbook: coordinated cross-package rollout
 
-One release = one version across all three packages (lockstep, currently
-**0.3.0**). The dependency chain fixes the order:
+One release is one version across all three packages. The packages stay in lockstep. The current version is **0.3.2**.
+
+The dependency chain fixes the order:
 
 ```
 tree-sitter-sudolang ──crates.io dep──▶ sudolang-lsp ──binary on $PATH──▶ zed-sudolang
@@ -10,21 +11,13 @@ tree-sitter-sudolang ──crates.io dep──▶ sudolang-lsp ──binary on $
 
 ## One-time setup
 
-Publishing is authenticated by **OIDC trusted publishing** — CI exchanges
-a GitHub Actions identity token for a short-lived registry token. No
-token secrets exist anywhere. Configure once, in each registry's web UI:
+**OIDC trusted publishing** authenticates each publish. CI exchanges a GitHub Actions identity token for a short-lived registry token. No token secrets exist anywhere. Configure this one time, in the web UI of each registry.
 
-- **crates.io** (per crate, Settings → Trusted Publishing → GitHub):
-  - `tree-sitter-sudolang`: owner `dylan-gluck`, repo
-    `tree-sitter-sudolang`, workflow `release.yml`, no environment
-  - `sudolang-lsp`: owner `dylan-gluck`, repo `sudolang-lsp`,
-    workflow `release.yml`, no environment
-- **npmjs.com** (package `tree-sitter-sudolang` → Settings → Trusted
-  Publisher): GitHub Actions, org `dylan-gluck`, repo
-  `tree-sitter-sudolang`, workflow `release.yml`, allowed action
-  `npm publish`. Provenance is generated automatically.
-- The zed-sudolang registry PR (step 4) is manual the first time; later
-  versions are a submodule bump in the same PR flow.
+1. On crates.io, open **Settings > Trusted Publishing > GitHub** for each crate.
+   - For `tree-sitter-sudolang`, set owner `dylan-gluck`, repo `tree-sitter-sudolang`, workflow `release.yml`, and no environment.
+   - For `sudolang-lsp`, set owner `dylan-gluck`, repo `sudolang-lsp`, workflow `release.yml`, and no environment.
+2. On npmjs.com, open **Settings > Trusted Publisher** for the `tree-sitter-sudolang` package. Set GitHub Actions, org `dylan-gluck`, repo `tree-sitter-sudolang`, workflow `release.yml`, and allowed action `npm publish`. Provenance follows automatically.
+3. Submit the zed-sudolang registry PR by hand the first time. A later version is a submodule bump in the same PR flow.
 
 ## 0. Preflight
 
@@ -32,10 +25,17 @@ token secrets exist anywhere. Configure once, in each registry's web UI:
 ./scripts/release-preflight.sh
 ```
 
-Verifies lockstep versions, clean trees, current generated parser,
-corpus + examples + LSP tests, extension wasm build, and that the Zed
-grammar-rev pin matches the grammar HEAD. Fix anything it flags before
-proceeding.
+The script checks all of this:
+
+- the lockstep versions across the three packages
+- the clean working trees
+- the generated parser against the committed `src/`
+- the grammar corpus and the examples
+- the LSP test suite
+- the extension wasm build
+- the Zed grammar-rev pin against the grammar HEAD
+
+Fix everything the script reports before you go on.
 
 ## 1. Grammar (tree-sitter-sudolang)
 
@@ -46,10 +46,9 @@ git tag -a vX.Y.Z -m "vX.Y.Z"
 git push origin vX.Y.Z
 ```
 
-The tag triggers `release.yml`: test matrix → version check →
-`cargo publish` + `npm publish` + GitHub Release (wasm artifact).
-**Wait for the crates.io publish to succeed before step 2** — the LSP
-publish resolves the grammar from crates.io.
+The tag starts `release.yml`. The workflow runs the test matrix, checks the version, then runs `cargo publish`, `npm publish`, and a GitHub Release with the wasm artifact.
+
+**Wait for the crates.io publish to succeed before step 2.** The LSP publish resolves the grammar from crates.io.
 
 ## 2. Language server (sudolang-lsp)
 
@@ -60,14 +59,11 @@ git tag -a vX.Y.Z -m "vX.Y.Z"
 git push origin vX.Y.Z
 ```
 
-The tag triggers: test matrix → version check → `cargo publish` +
-prebuilt binaries (mac arm64/x64, linux x64/arm64, windows x64) attached
-to a GitHub Release. After this, `cargo install sudolang-lsp` works.
+The tag starts the test matrix and the version check. The workflow then runs `cargo publish` and attaches prebuilt binaries to a GitHub Release. The binaries cover macOS arm64 and x64, Linux x64 and arm64, and Windows x64. After this step, `cargo install sudolang-lsp` works.
 
 ## 3. Zed extension (zed-sudolang)
 
-Preflight already confirmed `extension.toml`'s grammar `rev` equals the
-pushed grammar commit.
+The preflight already confirmed that the grammar `rev` in `extension.toml` equals the pushed grammar commit.
 
 ```sh
 cd zed-sudolang
@@ -76,12 +72,17 @@ git tag -a vX.Y.Z -m "vX.Y.Z"
 git push origin vX.Y.Z
 ```
 
-Then the human check Claude can't do: in Zed run
-**`zed: install dev extension`**, pick the checkout, and verify
-highlighting / outline / brackets / comment-toggle on `.sudo` files and
-`sudo` fences in `.md` — plus LSP diagnostics + format-on-save in both.
+Then do the visual check, which Claude cannot do. Claude has no write access to the Zed support directory.
 
-## 4. Registry submission (first release) / update (later releases)
+1. In Zed, run **`zed: install dev extension`**.
+2. Pick this checkout.
+3. Open a `.sudo` file. Check the highlighting, the outline, the brackets, and the comment toggle.
+4. Open a `.md` file with `sudo` fences. Check the same four items.
+5. Check the LSP diagnostics and format-on-save in both files.
+
+## 4. Registry submission
+
+Submit the first release by hand. A later release is an update to the same entry.
 
 ```sh
 git clone https://github.com/zed-industries/extensions
@@ -97,8 +98,7 @@ pnpm sort-extensions
 # open the PR
 ```
 
-Updates: PR bumping the submodule commit and the `version` field to
-match the new `extension.toml`.
+For an update, open a PR that bumps the submodule commit and the `version` field. The `version` field must match the new `extension.toml`.
 
 ## 5. Workspace
 
@@ -110,9 +110,15 @@ git push
 
 ## Next version
 
-Bump ALL of these to the same version, in one commit per repo:
-`package.json`, `tree-sitter.json` (metadata), grammar `Cargo.toml`;
-LSP `Cargo.toml` (package **and** the `tree-sitter-sudolang` dep
-version); `extension.toml` + zed `Cargo.toml`. Update each CHANGELOG.
-Re-pin the zed grammar `rev` after the grammar commit exists, then run
-the preflight.
+Bump every field below to the same version, in one commit per repository.
+
+- Grammar: `package.json`, the `metadata` block in `tree-sitter.json`, and `Cargo.toml`.
+- LSP: `Cargo.toml`, both the package version and the `tree-sitter-sudolang` dependency version.
+- Zed: `extension.toml` and `Cargo.toml`.
+
+Then do the rest in order:
+
+1. Update each CHANGELOG.
+2. Run `tree-sitter generate` and commit the result. The generated `src/parser.c` embeds the version, so the parser changes on every bump.
+3. Re-pin the Zed grammar `rev`, after the grammar commit exists.
+4. Run the preflight.

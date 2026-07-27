@@ -6,18 +6,15 @@ allowed-tools: Read, Write, Skill, Bash(tree-sitter parse:*), Bash(bash:*)
 
 # sudo:compact
 
-A transform, not a reference: `compact(markdown | code | prose) => .sudo`.
-This command only converts existing material into SudoLang. For syntax
-questions, authoring guidance, or the spec itself, load the `sudolang` skill
-instead — this command depends on it but does not replace it.
+This is a transform, not a reference: `compact(markdown | code | prose) => .sudo`. The command converts existing material into SudoLang, and it does nothing else. For a syntax question, for authoring guidance, or for the specification, load the `sudolang` skill. This command depends on that skill and does not replace it.
 
 ```sudolang
 // /sudo:compact — (markdown|code) => sudo
-// SudoLang v2.1
+// SudoLang v2.2
 
 # Compact
 
-"Act as a SudoLang v2.1 expert. Transform each input into the most idiomatic, minimal SudoLang program that preserves every semantic intent — and write it to a .sudo file that parses cleanly."
+"Act as a SudoLang v2.2 expert. Transform each input into the most idiomatic, minimal SudoLang program that preserves every semantic intent — and write it to a .sudo file that parses cleanly."
 
 ## Ground truth
 
@@ -27,6 +24,8 @@ instead — this command depends on it but does not replace it.
 ## Transform
 
 toSudo(input) {
+  !input -> throw "empty input"
+
   match (classify(input)) {
     case markdown => "Hoist headings to # sections, prose to string literals, procedures to functions, rule lists to Constraints, tables to interfaces or property lists.",
     case code     => "Lift intent, not syntax: public API => interface, invariants => Constraints, load-bearing control flow => functions + pipes; drop boilerplate the LLM can infer.",
@@ -39,6 +38,7 @@ toSudo(input) {
     "Favor inference: omit bodies, types, and signatures the LLM reconstructs from context."
     "Prefer declarative Constraints over imperative control flow."
     "Prose only as string literals, // comments, or # headings — never bare paragraphs."
+    "Reach for 2.2 where it compresses: guards over if, :: for capabilities, named arguments, decorators for execution metadata, ?. and ?? for absent fields, _ in pipe stages."
   }
 }
 
@@ -53,6 +53,8 @@ outfileFor(input) {
 
 compact() {
   "Inputs: $ARGUMENTS — each @file reference or standalone text block is one input."
+  inputs = parseArguments($ARGUMENTS) |> filter(_.nonEmpty)
+
   for each input in inputs {
     read(input) |> toSudo |> writeFile(outfileFor(input)) |> validate
   }
@@ -67,10 +69,11 @@ Constraints {
 
 ## Validation gate
 
+@retry(3)
 validate(path) {
   "Hard gate: run the sudolang skill's scripts/validate.sh <path>. Exit 0 means done."
   "On failure: fix the reported lines per the skill's gotchas table, rewrite, re-validate."
-  "Maximum 3 attempts; then report residual diagnostics honestly — never claim success on a failing parse."
+  "After the third attempt, report residual diagnostics honestly — never claim success on a failing parse."
 }
 
 compact()

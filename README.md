@@ -4,13 +4,13 @@ SudoLang is a pseudolanguage for instructing LLMs. It has no compiler and no run
 
 The value is compression. An interface, a constraint block, and a few guards state an intent that takes paragraphs of prose to write.
 
-This workspace defines the language well enough to build tools for it: a dialect specification, a tree-sitter grammar, a language server, and a Zed extension. The result is editor support. You get syntax highlighting, lints, and formatting for `sudo` code fences in markdown. The three packages release in lockstep at one version. The current version is **0.3.1**, and it targets SudoLang **v2.2**.
+This workspace defines the language well enough to build tools for it: a dialect specification, a tree-sitter grammar, a language server, and a Zed extension. The result is editor support. You get syntax highlighting, lints, and formatting for `sudo` code fences in markdown. The three packages release in lockstep at one version. The current version is **0.3.2**, and it targets SudoLang **v2.2**.
 
 ## Packages
 
 | Package                                                                     | What it is                                                                     | Install                                                                                                   |
 | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
-| [tree-sitter-sudolang](https://github.com/dylan-gluck/tree-sitter-sudolang) | Parser (tree-sitter grammar)                                                   | `npm install tree-sitter-sudolang` · Cargo: `tree-sitter-sudolang = "0.3.1"`                              |
+| [tree-sitter-sudolang](https://github.com/dylan-gluck/tree-sitter-sudolang) | Parser (tree-sitter grammar)                                                   | `npm install tree-sitter-sudolang` · Cargo: `tree-sitter-sudolang = "0.3.2"`                              |
 | [sudolang-lsp](https://github.com/dylan-gluck/sudolang-lsp)                 | Language server (diagnostics, formatting, hover, completion, go-to-definition) | `cargo install sudolang-lsp` or [prebuilt binaries](https://github.com/dylan-gluck/sudolang-lsp/releases) |
 | [zed-sudolang](https://github.com/dylan-gluck/zed-sudolang)                 | Zed extension (highlighting, outline, LSP wiring)                              | Zed → `zed: extensions` → search **SudoLang**                                                             |
 

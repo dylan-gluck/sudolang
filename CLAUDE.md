@@ -6,9 +6,9 @@
 
 ```sudo
 Packages {
-  "tree-sitter-sudolang"  // parser — grammar.js only, no external scanner, v0.3.1
-  "sudolang-lsp"          // LSP — tower-lsp + tree-sitter, markdown virtual docs, v0.3.1
-  "zed-sudolang"          // Zed extension — Rust cdylib, v0.3.1
+  "tree-sitter-sudolang"  // parser — grammar.js only, no external scanner, v0.3.2
+  "sudolang-lsp"          // LSP — tower-lsp + tree-sitter, markdown virtual docs, v0.3.2
+  "zed-sudolang"          // Zed extension — Rust cdylib, v0.3.2
 }
 ```
 
@@ -38,14 +38,17 @@ FileTypes {
 
 ```sudo
 Done {
-  parser: "56/56 corpus tests; 6 examples (.sudo + .sudo.md) zero ERROR/MISSING; release CI"
-  lsp:    "45/45 tests; markdown fences as virtual documents; 2.2 hovers/completions/lints"
-  zed:    "grammar rev pinned to 0.3.1; LSP attaches to Markdown; Cargo.lock committed"
+  parser: "56/56 corpus tests; 7 examples (.sudo + .sudo.md) zero ERROR/MISSING; release CI"
+  lsp:    "46/46 tests; markdown fences as virtual documents; 2.2 hovers/completions/lints"
+  zed:    "grammar rev pinned to 0.3.2; LSP attaches to Markdown; Cargo.lock committed"
+  docs:   "all docs + examples on 2.2; prose in ASD-STE100 (skill:ste-writing); every
+           ```sudo fence in docs/ and claude/ passes validate.sh"
 }
 
 Released {
   registries: "v0.3.1 live: crates.io (grammar + lsp), npm (grammar; 0.3.0 is broken — Node
                binding never compiled — deprecate it if not done), GH releases with wasm + binaries"
+  next:       "0.3.2 prepared locally: manifests, parser regen, CHANGELOGs — not yet tagged/pushed"
   auth:       "OIDC trusted publishing configured on crates.io (both crates) and npm — CI
                publishes with NO token secrets; new packages still need one manual first publish"
   registry:   "zed-industries/extensions PR #6961 submitted (sudolang @ 0.3.1) — awaiting merge"
@@ -53,7 +56,8 @@ Released {
 
 Pending {
   installTest: "zed: install dev extension — visual verification (user-run; see warn below)"
-  workspace:    "This superproject repo has no remote yet"
+  push:        "0.3.2 is committed in all three submodules + workspace; push + tag is user-run
+                (docs/release.md steps 1-3), then the registry PR bump"
 }
 
 warn "Claude is blocked from writing to ~/Library/Application Support/Zed/ — dev-extension install tests must be run by the user."
@@ -108,6 +112,12 @@ warn "ASI hazard (as in JS): a statement starting with `[` or `(` after an expre
 warn "Capitalised `Constraint` / `Constraints` ARE grammar keywords; Requirements /
       Options / Lint / State are NOT — they collide with prose and stay identifiers."
 
+warn "The grammar ACCEPTS try/catch (binding without parens: `catch e { }`) and block-body
+      lambdas — the 2.2 proposal defers try/catch as language; prefer require + @retry."
+
+warn "Formatter treats only `block` as indent-bearing, so multi-line object/array literals
+      and pipe continuations get flattened to their statement depth. Known, documented."
+
 warn "grammar.js TS errors (`Cannot find name 'seq'`, etc.) are noise — missing @types/tree-sitter-cli, no effect on generation."
 ```
 
@@ -125,6 +135,11 @@ tree-sitter build --wasm
 # sudolang-lsp/   (needs ../tree-sitter-sudolang checked out)
 cargo test && cargo build --release
 cargo run --release --example format_canonical
+cargo run --release --example diag_dump -- <file.md>   # LSP diagnostics for any doc
+
+# docs prose + fences
+python3 ~/.claude/skills/ste-writing/scripts/lint.py --descriptive docs/*.md
+bash claude/skills/sudolang/scripts/validate.sh docs/*.md claude/**/*.md
 
 # zed-sudolang/
 cargo build --release --target wasm32-wasip1

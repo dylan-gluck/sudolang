@@ -1,48 +1,48 @@
-# SudoLang v2.2 — User Guide
+# SudoLang v2.2 user guide
 
-SudoLang is a pseudolanguage designed for interacting with large language models. It blends natural language with lightweight programming constructs — interfaces, constraints, functions, pattern matching, pipes — to give you structured control over AI behavior without the overhead of a traditional programming language.
+SudoLang is a pseudolanguage for instructing large language models. It has no compiler and no runtime. The model reads the program and acts as the interpreter. The language mixes natural language with a small set of programming constructs: interfaces, constraints, functions, pattern matching, and pipes.
 
-This guide covers SudoLang v2.2, a strict superset of v2.1 — every valid v2.1 program is still valid. The v2.2 additions are collected in [SudoLang 2.2 — New Syntax](#20-sudolang-22--new-syntax).
+This guide covers SudoLang v2.2. Version 2.2 is a strict superset of v2.1, so every valid v2.1 program stays valid. Section 20 collects the v2.2 additions.
 
-**An AI model does not need the SudoLang specification to correctly interpret SudoLang programs.** All sufficiently advanced LLMs understand SudoLang natively.
+A model does not need this specification to read a SudoLang program. The specification exists so that tools can read one.
 
 ---
 
-## Table of Contents
+## Table of contents
 
-1. [Getting Started](#1-getting-started)
-2. [File Structure](#2-file-structure)
+1. [Getting started](#1-getting-started)
+2. [File structure](#2-file-structure)
 3. [Comments](#3-comments)
-4. [Variables & Assignments](#4-variables--assignments)
-5. [Strings & Interpolation](#5-strings--interpolation)
-6. [Numbers & Math](#6-numbers--math)
+4. [Variables and assignments](#4-variables-and-assignments)
+5. [Strings and interpolation](#5-strings-and-interpolation)
+6. [Numbers and math](#6-numbers-and-math)
 7. [Conditionals](#7-conditionals)
-8. [Pattern Matching](#8-pattern-matching)
+8. [Pattern matching](#8-pattern-matching)
 9. [Functions](#9-functions)
 10. [Interfaces](#10-interfaces)
-11. [Constraints, Requirements & Warnings](#11-constraints-requirements--warnings)
+11. [Constraints, requirements, and warnings](#11-constraints-requirements-and-warnings)
 12. [Commands](#12-commands)
 13. [Loops](#13-loops)
-14. [Pipes & Composition](#14-pipes--composition)
+14. [Pipes and composition](#14-pipes-and-composition)
 15. [Modifiers](#15-modifiers)
 16. [Destructuring](#16-destructuring)
 17. [Ranges](#17-ranges)
-18. [Referential Omnipotence](#18-referential-omnipotence)
-19. [Style Guide](#19-style-guide)
-20. [SudoLang 2.2 — New Syntax](#20-sudolang-22--new-syntax)
-21. [v2.1 Changes from v2.0](#21-v21-changes-from-v20)
-22. [Full Example: AI RPG](#22-full-example-ai-rpg)
+18. [Referential omnipotence](#18-referential-omnipotence)
+19. [Style guide](#19-style-guide)
+20. [SudoLang 2.2 syntax](#20-sudolang-22-syntax)
+21. [v2.1 changes from v2.0](#21-v21-changes-from-v20)
+22. [Full example: AI RPG](#22-full-example-ai-rpg)
 
 ---
 
-## 1. Getting Started
+## 1. Getting started
 
 ### What SudoLang is for
 
-- **AI-first programs** — chatbots, study tools, game engines, productivity agents
-- **AI Driven Development** — use `transpile()` to generate production code in any language
-- **Structured prompting** — express complex instructions with 20–30% fewer tokens than prose
-- **Specification documents** — define system architecture, constraints, and behavior declaratively
+- **AI-first programs**: chatbots, study tools, game engines, and productivity agents.
+- **AI-driven development**: use `transpile()` to generate production code in any language.
+- **Structured prompting**: state a complex instruction in 20 to 30 percent fewer tokens than prose.
+- **Specification documents**: declare system architecture, constraints, and behavior.
 
 ### Your first program
 
@@ -57,25 +57,25 @@ Greeter {
 /greet
 ```
 
-Paste this into any LLM chat. It will respond with something like *"Hello, World!"* and understand that `/greet` is a command it should execute.
+Paste this program into any LLM chat. The model answers with something like *"Hello, World!"*, and it reads `/greet` as a command to run.
 
 ### File types and the authoring convention
 
-SudoLang is authored in two shapes, and **Markdown-with-fences is the preferred default**:
+SudoLang has two authoring shapes. Markdown with fences is the preferred default.
 
-| Extension | Use |
-|-----------|-----|
-| `.md` | **Preferred.** Markdown prose with SudoLang in ` ```sudo ` fenced code blocks — prose explains, the fences carry the program. |
-| `.sudo.md` | The same, with an extension that signals SudoLang content explicitly. |
-| `.sudo` | Pure SudoLang, for programs that need no surrounding prose. |
+| Extension  | Use                                                                                                                    |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `.md`      | **Preferred.** Markdown prose with SudoLang in ` ```sudo ` fenced code blocks. The prose explains, and the fences carry the program. |
+| `.sudo.md` | The same shape, with an extension that marks the file as SudoLang content.                                             |
+| `.sudo`    | Pure SudoLang, for a program that needs no prose.                                                                      |
 
-Tooling — the LSP, the `validate.sh` gate, and CI — extracts and validates each ` ```sudo ` fence in `.md` / `.sudo.md` files, so a fenced program is checked exactly as a pure `.sudo` file is. Write in whichever form fits; reach for Markdown whenever prose earns its place beside the code.
+The tools extract and check each ` ```sudo ` fence in a `.md` or `.sudo.md` file. This covers the LSP, the `validate.sh` gate, and CI. A fenced program gets the same checks as a pure `.sudo` file. Use whichever shape fits. Use markdown when the prose earns its place next to the code.
 
 ---
 
-## 2. File Structure
+## 2. File structure
 
-A SudoLang program typically follows this pattern:
+Most SudoLang programs follow this pattern:
 
 ```sudo
 // 1. Preamble — a natural language description of what the program is and
@@ -96,7 +96,7 @@ ApiBuilder {
 /welcome
 ```
 
-Section headings (`# Heading`) are supported for outline navigation inside blocks and at the top level.
+A `# Heading` marker drives outline navigation. Use it at the top level and inside a block.
 
 ---
 
@@ -109,11 +109,11 @@ Section headings (`# Heading`) are supported for outline navigation inside block
    can span multiple lines */
 ```
 
-**Comments are NOT ignored by the AI.** In SudoLang, your documentation is literally code. Use comments to guide AI behavior, explain intent, and provide context.
+**The AI does not ignore comments.** In SudoLang, the documentation is code. Use a comment to guide behavior, to state intent, and to supply context.
 
 ---
 
-## 4. Variables & Assignments
+## 4. Variables and assignments
 
 ```sudo
 counter = 0        // Assign
@@ -123,13 +123,13 @@ price *= n         // Multiply-assign
 share /= n         // Divide-assign
 ```
 
-Assignment operators: `=`, `+=`, `-=`, `*=`, `/=`
+The assignment operators are `=`, `+=`, `-=`, `*=`, and `/=`.
 
-Assignment targets can be identifiers, member expressions (`obj.prop`), index expressions (`arr[0]`), or destructuring patterns.
+An assignment target is an identifier, a member expression (`obj.prop`), an index expression (`arr[0]`), or a destructuring pattern.
 
 ---
 
-## 5. Strings & Interpolation
+## 5. Strings and interpolation
 
 ### Double-quoted strings
 
@@ -146,11 +146,11 @@ message = `multi-line
 string with ${counter} interpolation`
 ```
 
-Both string forms support `$identifier` and `${expression}` interpolation. Escape with `\$` to produce a literal dollar sign.
+Both string forms accept `$identifier` and `${expression}` interpolation. To write a literal dollar sign, escape it with `\$`.
 
 ---
 
-## 6. Numbers & Math
+## 6. Numbers and math
 
 ```sudo
 area = base * height / 2
@@ -158,38 +158,38 @@ exp = 2 ^ 8           // Exponent
 remainder = total % chunkSize
 ```
 
-### Operators by precedence (highest to lowest)
+### Operators by precedence, highest to lowest
 
-| Precedence | Operators | Description |
-|:---:|---|---|
-| 12 | `.` `()` `[]` | Member access, call, index |
-| 11 | `!` `-` (unary) | Prefix NOT, negation |
-| 10 | `^` | Exponent (right-associative) |
-| 9 | `*` `/` `%` | Multiply, divide, remainder |
-| 8 | `+` `-` | Add, subtract |
-| 7 | `..` | Range |
-| 7 | `union` `intersection` | Set operations |
-| 6 | `<` `>` `<=` `>=` | Comparison |
-| 5 | `==` `!=` | Equality |
-| 4 | `&&` | Logical AND |
-| 3 | `\|\|` `xor` | Logical OR, XOR |
-| 2 | `=` `+=` `-=` `*=` `/=` | Assignment (right-associative) |
-| 1 | `\|>` | Pipe (lowest) |
+|  Precedence | Operators                | Description                     |
+| :---------: | ------------------------ | ------------------------------- |
+|     12      | `.` `()` `[]`            | Member access, call, index      |
+|     11      | `!` `-` (unary)          | Prefix NOT, negation            |
+|     10      | `^`                      | Exponent (right-associative)    |
+|      9      | `*` `/` `%`              | Multiply, divide, remainder     |
+|      8      | `+` `-`                  | Add, subtract                   |
+|      7      | `..`                     | Range                           |
+|      7      | `union` `intersection`   | Set operations                  |
+|      6      | `<` `>` `<=` `>=`        | Comparison                      |
+|      5      | `==` `!=`                | Equality                        |
+|      4      | `&&`                     | Logical AND                     |
+|      3      | `\|\|` `xor` `??`        | Logical OR, XOR, nullish default |
+|      2      | `=` `+=` `-=` `*=` `/=`  | Assignment (right-associative)  |
+|      1      | `\|>`                    | Pipe (lowest)                   |
 
-> **Note:** The `cap` and `cup` operators are deprecated in favor of `union` and `intersection`.
+> **Note:** SudoLang deprecates the `cap` and `cup` operators. Use `union` and `intersection`.
 
 ---
 
 ## 7. Conditionals
 
-Conditional expressions evaluate to values and can be assigned:
+A conditional expression produces a value, so you can assign it:
 
 ```sudo
 status = if (age >= 18) "adult" else "minor"
 access = if (age >= 18 && isMember) "granted" else "denied"
 ```
 
-With blocks:
+The same form takes blocks:
 
 ```sudo
 if (score > 100) {
@@ -201,7 +201,7 @@ if (score > 100) {
 
 ---
 
-## 8. Pattern Matching
+## 8. Pattern matching
 
 Use `match` for semantic pattern matching with destructuring:
 
@@ -214,12 +214,12 @@ result = match (value) {
 }
 ```
 
-Patterns can match object shapes, array shapes, literal values, and identifiers. The AI can also perform **semantic pattern matching** — inferring complex conditions:
+A pattern matches an object shape, an array shape, a literal value, or an identifier. The AI also does **semantic pattern matching**, where it infers the condition:
 
 ```sudo
 match (post) {
-  case (contains harmful content) => explain(contentPolicy),
-  case (is spam) => flag(),
+  case "contains harmful content" => explain(contentPolicy),
+  case "is spam" => flag(),
   default => publish(),
 }
 ```
@@ -228,9 +228,9 @@ match (post) {
 
 ## 9. Functions
 
-SudoLang functions come in several forms — from fully inferred signatures to complete definitions.
+SudoLang functions run from a fully inferred signature to a complete definition.
 
-### Inferred functions (signature only)
+### Inferred functions, signature only
 
 ```sudo
 fn foo                     // Keyword + name, no parens
@@ -238,7 +238,7 @@ function bar               // Alternate keyword
 function baz(x, y)         // With parameters
 ```
 
-The AI will **infer the function body** from the name, parameters, and surrounding context. This is a core SudoLang feature — you don't need to spell out obvious behavior.
+The AI **infers the function body** from the name, the parameters, and the context. This is a core SudoLang feature. You do not spell out obvious behavior.
 
 ### Functions with bodies
 
@@ -248,7 +248,7 @@ function withBody(x, y) {
 }
 ```
 
-### Bare-name functions (no keyword)
+### Bare-name functions, no keyword
 
 ```sudo
 chunk() {
@@ -256,7 +256,7 @@ chunk() {
 }
 ```
 
-When a function has a block body, the `fn`/`function` keyword is optional.
+When a function has a block body, the `fn` or `function` keyword is optional.
 
 ### Arrow functions
 
@@ -267,7 +267,7 @@ g = (a, b) => a + b
 
 ### Natural language function bodies
 
-Function bodies can contain prose constraints and instructions — the AI interprets them:
+A function body holds prose constraints and instructions, and the AI reads them:
 
 ```sudo
 welcome() {
@@ -287,7 +287,7 @@ function greet(name, style = "casual") {
 
 ## 10. Interfaces
 
-Interfaces define structure and behavior. They are the primary organizational unit in SudoLang. The `interface` keyword is **optional**.
+An interface declares structure and behavior. It is the main organizational unit in SudoLang. The `interface` keyword is **optional**.
 
 ### Basic interface
 
@@ -328,25 +328,27 @@ ChatBot {
 
 ### Properties
 
-Two forms for declaring properties:
+A property takes one of two forms:
 
 ```sudo
-name = "default"       // Assignment form — sets a default value
-role: "admin"          // Declaration form — colon-separated key:value
-health                 // Bare property — type and value inferred
+Account {
+  name = "default"     // Assignment form — sets a default value
+  role: "admin"        // Declaration form — colon-separated key:value
+  health               // Bare property — type and value inferred
+}
 ```
 
 ### Conventions
 
-- **PascalCase** for interface and type names: `Player`, `StoryWorld`, `ActionObject`
-- **camelCase** for properties and functions: `minimumSalary`, `greet()`
-- Single-word identifiers for names in v2.1: `StartGame`, not `Start Game`
+- **PascalCase** for an interface or type name: `Player`, `StoryWorld`, `ActionObject`.
+- **camelCase** for a property or function: `minimumSalary`, `greet()`.
+- Single-word identifiers: `StartGame`, not `Start Game`.
 
 ---
 
-## 11. Constraints, Requirements & Warnings
+## 11. Constraints, requirements, and warnings
 
-Constraints are SudoLang's most powerful feature. They let you declare rules that the AI continuously respects throughout execution.
+A constraint declares a rule that the AI keeps to for the whole run. Constraints carry most of the language.
 
 ### Constraint blocks
 
@@ -379,9 +381,9 @@ Employee {
 constraint: "Score points are awarded any time a player scores a goal."
 ```
 
-### Requirements (throw on violation)
+### Requirements, which throw on a violation
 
-Requirements enforce hard rules. When violated, they throw errors:
+A requirement states a hard rule. A violation throws an error:
 
 ```sudo
 interface User {
@@ -397,9 +399,9 @@ require should        // require inside a function
 require moduleName    // require a parameter exists
 ```
 
-### Warnings (soft rules)
+### Warnings, which are soft rules
 
-Warnings are like requirements but don't throw errors:
+A warning works like a requirement, but it does not throw:
 
 ```sudo
 warn "name should be defined."
@@ -408,17 +410,17 @@ warn "given should be a string when defined."
 
 ### Best practices
 
-- **Be declarative** — describe *what* you want, not *how* to do it
-- **Keep constraints concise** — a few clear rules beats a wall of text
-- **Use `require` for hard rules** (input validation, invariants)
-- **Use `warn` for soft guidance** (style hints, best practices)
-- **Use `Constraints {}` blocks** for behavioral rules the AI should silently follow
+- **Be declarative.** State *what* you want, not *how* to do it.
+- **Keep a constraint short.** A few clear rules beat a wall of text.
+- **Use `require` for a hard rule**, such as input validation or an invariant.
+- **Use `warn` for soft guidance**, such as a style hint.
+- **Use a `Constraints {}` block** for a behavioral rule that the AI follows without comment.
 
 ---
 
 ## 12. Commands
 
-Commands define a chat interface for your program. They use slash-prefix syntax.
+A command declares a chat interface for your program. Command names start with a slash.
 
 ### Declaring commands
 
@@ -431,11 +433,11 @@ StudyBot {
 }
 ```
 
-**Syntax:** `/name | alias [arguments] - description`
+The syntax is `/name | alias [arguments] - description`.
 
-- The pipe `|` separates the full command from a short alias
-- Square brackets `[args]` denote arguments
-- The dash `-` precedes the description
+- The pipe `|` separates the full command from a short alias.
+- Square brackets `[args]` mark the arguments.
+- The dash `-` comes before the description.
 
 ### Invoking commands
 
@@ -446,11 +448,12 @@ StudyBot {
 
 ### Common inferred commands
 
-These work without explicit definition — the AI infers them:
+These work without a definition, because the AI infers them:
 
-```sudo
-ask, explain, run, log, transpile(targetLang, source), convert,
-wrap, escape, continue, instruct, list, revise, emit
+```
+ask       explain   run       log       convert   emit
+wrap      escape    continue  instruct  list      revise
+transpile(targetLang, source)
 ```
 
 ---
@@ -463,7 +466,7 @@ wrap, escape, continue, instruct, list, revise, emit
 for each number in numbers, log(number)
 ```
 
-The variable, source, and action are separated by commas.
+Commas separate the variable, the source, and the action.
 
 ### While
 
@@ -483,9 +486,9 @@ loop {
 
 ---
 
-## 14. Pipes & Composition
+## 14. Pipes and composition
 
-The pipe operator `|>` passes the output of the left expression as the first argument to the right expression:
+The pipe operator `|>` passes the value on the left as the first argument to the expression on the right:
 
 ```sudo
 f = x => x + 1
@@ -494,16 +497,16 @@ h = f |> g
 h(20)  // 42
 ```
 
-Pipes are powerful for chaining operations:
+Chain pipes to compose several steps:
 
 ```sudo
-results = extrapolateQuery() |> forEach(search) |> surroundingContext()
+results = extrapolateQuery(text) |> forEach(search) |> surroundingContext()
 ```
 
 ```sudo
-options = listRandomOptions(7) |>
-  scoreByEngagement |>
-  takeTop(3)
+options = listRandomOptions(7)
+  |> scoreByEngagement
+  |> takeTop(3)
 ```
 
 ```sudo
@@ -514,7 +517,7 @@ Dux |> transpile(JavaScript)
 
 ## 15. Modifiers
 
-Customize AI responses with colon-separated modifiers after a function call:
+A modifier tunes the response of a call. Modifiers follow the call, after a colon:
 
 ```sudo
 explain(historyOfFrance):length=short, detail=simple;
@@ -528,9 +531,7 @@ log(formatResults()):format="Markdown, no outer code block wrapper"
 welcome():length=1, format=line
 ```
 
-**Syntax:** `functionCall():modifier=value, modifier=value;`
-
-The semicolon terminates the modifier list.
+The syntax is `functionCall():modifier=value, modifier=value;`. The semicolon ends the modifier list.
 
 ---
 
@@ -550,32 +551,33 @@ log(foo, bar)  // 1, 2
 { foo, bar } = { foo: 1, bar: 2 }
 ```
 
-Destructuring also works in function parameters and match patterns.
+Destructuring also works in a function parameter and in a match pattern.
 
 ---
 
 ## 17. Ranges
 
-The range operator `..` creates an inclusive range:
+The range operator `..` builds an inclusive range:
 
 ```sudo
 1..3    // 1, 2, 3
 1..10   // 1 through 10
 ```
 
-Used in options, loops, and anywhere a sequence is needed:
+Use a range in options, in loops, and anywhere a sequence fits:
 
 ```sudo
 Options {
-  depth: 1..10|String
+  depth: 1..10
+  verbosity: 1..5
 }
 ```
 
 ---
 
-## 18. Referential Omnipotence
+## 18. Referential omnipotence
 
-You do **not** need to define every function. The AI will infer behavior from context:
+You do **not** define every function. The AI infers the behavior from the context:
 
 ```sudo
 function greet(name);
@@ -583,41 +585,41 @@ function greet(name);
 greet("Echo")  // "Hello, Echo"
 ```
 
-This extends to the full capability of the LLM:
+This reaches as far as the model does:
 
-- **Inference** — understand intent and generate appropriate responses
-- **Natural language processing** — parse and produce human-like text
-- **Code generation** — produce working code in any language
-- **Knowledge access** — tap into the model's full training data
-- **Problem solving** — reason through complex, multi-step problems
+- **Inference**: read the intent and produce a fitting response.
+- **Natural language processing**: parse and write human text.
+- **Code generation**: produce working code in any language.
+- **Knowledge access**: use the training data of the model.
+- **Problem solving**: reason through a multi-step problem.
 
 ---
 
-## 19. Style Guide
+## 19. Style guide
 
-1. **Favor natural language** — write prose where it's clearer than code
-2. **Lean into inference** — infer function bodies when the name says it all; define named functions without bodies to document their existence
-3. **Minimize code** — limit structural code to flow control and composition
-4. **Be concise and readable** — both natural language and code should be compact and clear
-5. **Favor composition over inheritance** — use interfaces and factories, not `class`/`extends`
-6. **Use constraints declaratively** — say *what*, not *how*
+1. **Favor natural language.** Write prose where prose is clearer than code.
+2. **Lean into inference.** Infer a function body when the name says enough. Declare a named function without a body to record that it exists.
+3. **Minimize code.** Keep structural code to flow control and composition.
+4. **Stay short and readable.** This applies to the prose and to the code.
+5. **Favor composition over inheritance.** Use interfaces and factories, not `class` or `extends`.
+6. **Use constraints declaratively.** State *what*, not *how*.
 
 ### Linting rules
 
-- Bugs, spelling errors, grammar errors → throw and fix
-- Code smells → warn and explain
-- Prohibit `new`, `extends`, `class` → suggest alternatives
-- Favor inference and natural language unless code is more concise
+- A bug, a spelling error, or a grammar error: throw and fix it.
+- A code smell: warn and explain it.
+- `new`, `extends`, and `class`: prohibit them and suggest an alternative.
+- Prefer inference and natural language, unless the code is shorter.
 
 ---
 
-## 20. SudoLang 2.2 — New Syntax
+## 20. SudoLang 2.2 syntax
 
-SudoLang 2.2 is a **strict superset** of v2.1: every valid v2.1 program is a valid 2.2 program. The additions close expressiveness gaps that fluent authors kept reaching for — capability calls, call-site labels, guards, execution metadata — and formalize several features that were already in the grammar but undocumented.
+Version 2.2 is a **strict superset** of v2.1. Every valid v2.1 program is a valid 2.2 program. The additions close the gaps that fluent authors kept reaching for: capability calls, call-site labels, guards, and execution metadata. Version 2.2 also documents several features that the grammar already accepted.
 
 ### Qualified capability names (`::`)
 
-`::` addresses a **capability namespace** — tools, MCP servers, agents, external systems — while `.` stays structural member access on values:
+The `::` operator addresses a **capability namespace**, such as a tool, an MCP server, an agent, or an external system. The `.` operator stays structural member access on a value.
 
 ```sudo
 issue = mcp::linear.getIssue(ISSUE_ID)
@@ -625,21 +627,21 @@ git::worktree.add({ branch: issue.branchName })
 summary = fs::read(path) |> ai::summarize
 ```
 
-The distinction tells the interpreter "resolve this against the environment" (`mcp::linear`, `git::`, `fs::`) versus "read this off a value" (`.parent`, `.title`). In agent contexts this maps directly onto tool namespaces, making SudoLang a natural orchestration surface without a module system. `::` joins plain identifiers; `.` continues to do member access on the result.
+The split tells the interpreter which of two things to do. For `mcp::linear`, `git::`, and `fs::`, it resolves the name against the environment. For `.parent` and `.title`, it reads the name off a value. In an agent context this maps onto tool namespaces, which makes SudoLang an orchestration surface without a module system. The `::` operator joins plain identifiers, and `.` does member access on the result.
 
 ### Named arguments
 
-Label arguments at the call site:
+Label an argument at the call site:
 
 ```sudo
 git::worktree.add(branch = issue.branchName, base = "origin/development")
 ```
 
-Call-site labels are documentation that binds — they remove argument-order ambiguity, which matters when the interpreter infers a body. Named arguments are legal only inside argument lists.
+A call-site label is documentation that binds. It removes argument-order ambiguity, which matters when the interpreter infers the body. A named argument is legal only inside an argument list.
 
 ### Guards (`->`)
 
-A guard runs its consequence only when the condition holds. Read it as "then":
+A guard runs its consequence only when the condition holds. Read `->` as "then":
 
 ```sudo
 !issue -> throw "ISSUE_ID did not resolve"
@@ -647,11 +649,13 @@ gaps -> askUser(gaps)
 count > MAX -> warn "truncating to $MAX"
 ```
 
-`condition -> statement` is statement position only — no chains, no `else`. The consequence may be a statement, a block, or a `require` / `warn`. For anything richer, use `if`. Match arms keep `=>` ("map to value"); guards use `->` ("do this consequence") — the visual split is intentional.
+The form `condition -> statement` works in statement position only. It does not chain and it has no `else`. The consequence is a statement, a block, a `require`, or a `warn`. For anything richer, use `if`.
+
+A match arm keeps `=>`, which means "map to value". A guard uses `->`, which means "do this consequence". The split is deliberate.
 
 ### Decorators
 
-Decorators attach execution metadata to a declaration — who runs it, how failure is handled, whether it runs concurrently:
+A decorator attaches execution metadata to a declaration. It states who runs the unit, how the interpreter handles a failure, and whether the unit runs concurrently.
 
 ```sudo
 @agent(general)
@@ -664,18 +668,18 @@ validate() { "Typecheck, lint, test; fix until green." }
 for each dimension in reviews { review(dimension) }
 ```
 
-They stack, and they answer "how should this run" so the body can stay about "what it does". Decorators are allowed before interface declarations, function declarations (keyword and bare forms), and `for each` / `while` / `loop` statements.
+Decorators stack. They answer "how should this run", so the body stays about "what it does". A decorator goes before an interface declaration, before a function declaration in either form, or before a `for each`, `while`, or `loop` statement.
 
-| Decorator | Meaning |
-|---|---|
-| `@agent(name)` | Run as the named subagent |
-| `@retry(n)` | Retry up to n times on failure |
-| `@timeout(seconds)` | Bound the run time |
-| `@parallel` | Run iterations / branches concurrently |
-| `@memo` | Memoize the result |
-| `@blocking(user)` | Pause for user interaction |
+| Decorator           | Meaning                             |
+| ------------------- | ----------------------------------- |
+| `@agent(name)`      | Run as the named subagent           |
+| `@retry(n)`         | Retry up to n times on failure      |
+| `@timeout(seconds)` | Bound the run time                  |
+| `@parallel`         | Run iterations or branches together |
+| `@memo`             | Memoize the result                  |
+| `@blocking(user)`   | Pause for user interaction          |
 
-Unknown decorators are legal and inferred — the vocabulary above is documented, not exhaustive.
+An unknown decorator is legal, and the interpreter infers it. The table above lists the documented vocabulary, not every legal name.
 
 ### Optional chaining and nullish default (`?.`, `??`)
 
@@ -685,11 +689,11 @@ As in JavaScript, `?.` short-circuits on a null or absent value, and `??` suppli
 parent = issue?.parent?.title ?? "none"
 ```
 
-`??` sits at the same precedence tier as `||`. Together they collapse the most common data-shape hazard in LLM pipelines — absent fields — into a single line.
+The `??` operator sits at the same precedence tier as `||`. Together the two operators collapse the most common data-shape hazard in an LLM pipeline, an absent field, into one line.
 
 ### Spread and rest (`...`)
 
-JavaScript-style spread in literals and calls, and rest in patterns:
+Use spread in a literal or a call, and rest in a pattern, the same way JavaScript does:
 
 ```sudo
 [first, ...rest] = queue
@@ -698,39 +702,39 @@ config = { ...defaults, theme: "dark" }
 run(...steps)
 ```
 
-Spread merges or collects a sequence; rest captures "everything else" when destructuring.
+Spread merges or collects a sequence. Rest captures everything else when you destructure.
 
 ### Pipe placeholder (`_`)
 
-Inside a pipe stage, `_` is the piped value — it drops the lambda head when exactly one subject flows through:
+Inside a pipe stage, `_` is the piped value. It drops the lambda head when exactly one subject flows through:
 
 ```sudo
 open = issues |> filter(_.state == "open") |> map(_.title) |> take(5)
 ```
 
-The placeholder is only meaningful inside a pipe stage; using `_` elsewhere is flagged by the LSP.
+The placeholder means something only inside a pipe stage. The LSP flags `_` anywhere else.
 
 ### Formalized features
 
-These were already accepted by the grammar; 2.2 promotes them to documented language:
+The grammar already accepted these forms. Version 2.2 promotes them to documented language.
 
-- **Triple-quoted prose blocks** — `"""..."""` for long, multi-line prose or examples (no interpolation; the formatter leaves the body untouched).
-- **Resource sigils** — `@scope/path` names an external resource; decorators (`@name`) build on the same `@` sigil.
-- **Comma-grouped and money numerics** — `1,000,000` and `$100,000` parse as numbers.
-- **Optional parameters** — `arg?` marks a parameter as optional, alongside defaults (`arg = value`).
-- **Trailing commas** — legal in arrays, objects, and argument / parameter lists.
-- **`throw` and `return` statements** — `throw "issue not found"`, `return value`.
+- **Triple-quoted prose blocks**: `"""..."""` holds long prose or an example across lines. It has no interpolation, and the formatter leaves the body alone.
+- **Resource sigils**: `@scope/path` names an external resource. A decorator (`@name`) builds on the same `@` sigil.
+- **Comma-grouped and money numerics**: `1,000,000` and `$100,000` parse as numbers.
+- **Optional parameters**: `arg?` marks a parameter optional, next to a default (`arg = value`).
+- **Trailing commas**: legal in an array, an object, an argument list, and a parameter list.
+- **`throw` and `return` statements**: `throw "issue not found"` and `return value`.
 
-### Gotcha: statement-leading `[` (ASI)
+### Gotcha: a statement that starts with `[`
 
-SudoLang has the same automatic-semicolon-insertion hazard as JavaScript. A statement that starts with `[` (or `(`) immediately after an expression statement is parsed as indexing or a call that continues the previous line across the newline (this snippet is intentionally wrong, so it is not a `sudo` fence):
+SudoLang has the same automatic-semicolon-insertion hazard as JavaScript. Put a statement that starts with `[` or `(` right after an expression statement, and the parser reads an index or a call across the newline. The next block is wrong on purpose, so it is not a `sudo` fence:
 
 ```
 result = compute()
 [first, ...rest] = queue     // parsed as compute()[first, ...] — wrong
 ```
 
-Terminate the previous statement with `;`, or reorder so the `[`-leading statement doesn't follow a bare expression:
+End the previous statement with `;`. You can also reorder, so that the `[`-leading statement does not follow a bare expression:
 
 ```sudo
 result = compute();
@@ -739,25 +743,25 @@ result = compute();
 
 ---
 
-## 21. v2.1 Changes from v2.0
+## 21. v2.1 changes from v2.0
 
-v2.1 is the v2.0 spec, made **strict** for parser tooling. If you're upgrading:
+Version 2.1 is the v2.0 specification, made **strict** for parser tooling. To upgrade a v2.0 program, apply these changes:
 
-| Change | v2.0 | v2.1 |
-|--------|------|------|
-| **Bare prose in blocks** | Allowed anywhere | Must be string literals or structured items |
-| **Multi-word identifiers** | `Start game {` | `StartGame {` (single-word / camelCase / PascalCase) |
-| **Prose constraints** | Bare text | String literals: `"Avoid mentioning these."` |
-| **Markdown** | Parsed inline | Not parsed by grammar; handled via injection |
-| **Section headings** | Full Markdown headings | `# Heading` markers for outline navigation only |
+| Change                    | v2.0                    | v2.1                                             |
+| ------------------------- | ----------------------- | ------------------------------------------------ |
+| **Bare prose in blocks**  | Legal anywhere          | Must be a string literal or a structured item    |
+| **Multi-word identifiers**| `Start game {`          | `StartGame {` (single-word, camelCase, PascalCase) |
+| **Prose constraints**     | Bare text               | String literals: `"Avoid mentioning these."`     |
+| **Markdown**              | The grammar parses it   | The host grammar injects it instead              |
+| **Section headings**      | Full Markdown headings  | `# Heading` markers, for outline navigation only |
 
-The semantic meaning is unchanged — v2.1 is about making the structure parseable by tooling (tree-sitter, LSP, editor extensions) while preserving everything that made v2.0 expressive.
+The meaning does not change. Version 2.1 gives the structure a shape that tools can parse, such as tree-sitter, the LSP, and an editor extension. It keeps everything that made v2.0 expressive.
 
 ---
 
-## 22. Full Example: AI RPG
+## 22. Full example: AI RPG
 
-This complete program demonstrates interfaces, constraints, commands, pipes, loops, and natural language bodies working together:
+This program uses interfaces, constraints, commands, pipes, loops, and natural language bodies together:
 
 ```sudo
 // Singular: A SudoLang Adventure
@@ -787,6 +791,11 @@ Inventory {
     "Don't explain the constraint-solving process."
   }
 
+  add(item, quantity = 1) {
+    item.weight > player.strength * 2 -> throw "the item is too heavy to lift"
+    items = { ...items, [item.name]: { ...item, quantity } }
+  }
+
   display() {
     "Format as markdown list. Adjust detail based on context."
   }
@@ -804,6 +813,14 @@ Player {
   }
 }
 
+Quests {
+  activeQuests
+
+  next() {
+    return activeQuests |> filter(_.available) |> sortBy(_.priority) |> take(1)
+  }
+}
+
 GameEngine {
   /start - begin a new adventure
   /look - describe surroundings
@@ -817,10 +834,10 @@ GameEngine {
 
 ---
 
-## Further Reading
+## Further reading
 
-- [SudoLang Specification](reference/sudolang.sudo.md) — full language spec
-- [Grammar Specification](grammar-specification.md) — tree-sitter grammar details
-- [Examples](../tree-sitter-sudolang/examples/) — canonical `.sudo` programs
-- [Anatomy of a SudoLang Program](https://medium.com/javascript-scene/anatomy-of-a-sudolang-program-prompt-engineering-by-example-f7a7b65263bc) — introduction by example
-- [AI Programming for Absolute Beginners](https://medium.com/javascript-scene/ai-programming-for-absolute-beginners-16ac3fc6dea6) — getting started guide
+- [SudoLang 2.2 proposal](proposals/sudolang-2.2.md): the design record for the v2.2 additions.
+- [Grammar specification](grammar-specification.md): the tree-sitter grammar in detail.
+- [Cheatsheet](cheatsheet.md): the one-page reference.
+- [Examples](../tree-sitter-sudolang/examples/): runnable `.sudo` and `.sudo.md` programs.
+- [SudoLang: A Powerful Pseudocode Programming Language for LLMs](https://medium.com/javascript-scene/sudolang-a-powerful-pseudocode-programming-language-for-llms-d64d42aa719b): the article this workspace started from.

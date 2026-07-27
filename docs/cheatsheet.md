@@ -1,6 +1,6 @@
-# SudoLang v2.2 — Cheatsheet
+# SudoLang v2.2 cheatsheet
 
-Quick reference for the SudoLang pseudolanguage. Pin this next to your editor. v2.2 is a strict superset of v2.1 — see [SudoLang 2.2](#sudolang-22) for the new syntax.
+A quick reference for the SudoLang pseudolanguage. Pin it next to your editor. Version 2.2 is a strict superset of v2.1. The [SudoLang 2.2](#sudolang-22) section lists the new syntax.
 
 ---
 
@@ -11,7 +11,7 @@ Quick reference for the SudoLang pseudolanguage. Pin this next to your editor. v
 /* block comment */
 ```
 
-## Variables & Assignment
+## Variables and assignment
 
 ```sudo
 x = 42                     // assign
@@ -25,21 +25,26 @@ x += 1                     // also: -=  *=  /=
 "Total: ${a + b}"          // expression interpolation
 "Price: \$42"              // escaped dollar sign
 `template ${string}`       // backtick template strings
+"""
+long prose block, no interpolation
+"""
 ```
 
-## Numbers & Math
+## Numbers and math
 
-```sudo
-+  -  *  /  %  ^           // arithmetic (^ = exponent)
-union  intersection         // set operations
-1..5                        // range (inclusive)
+```
++  -  *  /  %  ^           arithmetic (^ = exponent)
+union  intersection        set operations
+1..5                       range (inclusive)
+1,000,000   $100,000       comma groups and money
 ```
 
-## Comparison & Logic
+## Comparison and logic
 
-```sudo
-==  !=  <  >  <=  >=       // comparison
-&&  ||  xor  !             // logic
+```
+==  !=  <  >  <=  >=       comparison
+&&  ||  xor  !             logic
+??                         nullish default
 ```
 
 ## Conditionals
@@ -50,7 +55,7 @@ status = if (age >= 18) "adult" else "minor"
 if (cond) { a() } else { b() }
 ```
 
-## Pattern Matching
+## Pattern matching
 
 ```sudo
 result = match (value) {
@@ -65,9 +70,10 @@ result = match (value) {
 ```sudo
 fn inferred                            // inferred body
 function greet(name)                   // signature only
-function add(x, y) { return x + y }   // full definition
+function add(x, y) { return x + y }    // full definition
 chunk() { "Chunk the text." }          // bare-name + body
-f = x => x + 1                        // arrow function
+f = x => x + 1                         // arrow function
+function draft(role, budget?) { }      // optional parameter
 ```
 
 ## Interfaces
@@ -84,7 +90,7 @@ Player {                    // interface keyword is optional
 }
 ```
 
-Nesting is supported:
+Blocks nest:
 
 ```sudo
 App {
@@ -106,7 +112,7 @@ constraint MinSalary { emit(violation) }         // named
 constraint: "Points awarded on goal."            // inline
 ```
 
-## Requirements & Warnings
+## Requirements and warnings
 
 ```sudo
 require "users must be over 13"        // throws on violation
@@ -160,9 +166,9 @@ log(results):format="json"
 1..10                       // inclusive range: 1,2,...,10
 ```
 
-## Inferred Functions
+## Inferred functions
 
-These work without definition — the AI infers them:
+These work without a definition. The AI infers them:
 
 ```
 ask  explain  log  list  emit  run  transpile(lang)
@@ -174,7 +180,7 @@ join  split  trim  reverse  unique  flatten  merge
 
 ## SudoLang 2.2
 
-New syntax over v2.1 (strict superset — every v2.1 program still parses):
+New syntax over v2.1. Version 2.2 is a strict superset, so every v2.1 program still parses:
 
 ```sudo
 [first, ...rest] = queue                  // rest in patterns
@@ -188,16 +194,13 @@ open = issues |> filter(_.state == "open") |> map(_.title)   // _ = piped value
 gather() { "explore the codebase" }
 ```
 
-Decorator vocabulary: `@agent(name)` `@retry(n)` `@timeout(seconds)` `@parallel`
-`@memo` `@blocking(user)`. Unknown decorators are legal and inferred.
+The documented decorators are `@agent(name)`, `@retry(n)`, `@timeout(seconds)`, `@parallel`, `@memo`, and `@blocking(user)`. An unknown decorator is legal, and the interpreter infers it.
 
-**ASI gotcha:** a statement that starts with `[` or `(` right after an expression
-statement is parsed as indexing / call across the newline. End the previous line
-with `;` or put the `[`-leading statement first.
+**ASI gotcha.** Put a statement that starts with `[` or `(` right after an expression statement. The parser then reads an index or a call across the newline. End the previous line with `;`, or put the `[`-leading statement first.
 
 ### Token-economy idioms
 
-Prefer the 2.2 form — same intent, fewer tokens:
+Prefer the 2.2 form. It states the same intent in fewer tokens:
 
 | Instead of                                 | Write                       |
 | ------------------------------------------ | --------------------------- |
@@ -210,7 +213,7 @@ Prefer the 2.2 form — same intent, fewer tokens:
 
 ---
 
-## Program Skeleton
+## Program skeleton
 
 ```sudo
 // preamble
@@ -231,46 +234,52 @@ MyApp {
 
 ---
 
-## Operator Precedence (high → low)
+## Operator precedence, high to low
 
 ```
-.  ()  []        member / call / index
+::               capability namespace
+.  ?.  []        member / optional member / index
+:                modifier list
+()               call
 !  - (unary)     prefix
 ^                exponent
 *  /  %          multiplicative
 +  -             additive
 ..               range
-union ∩          set ops
+union  intersection
 <  >  <=  >=     comparison
 ==  !=           equality
 &&               AND
-||  xor  ??      OR / nullish default (2.2)
+||  ??  xor      OR / nullish default / XOR
 =  +=  -=  *=    assignment
+=>               arrow
 |>               pipe
 ```
 
+The `->` guard arrow is not an expression operator. It joins a condition to a consequence in statement position.
+
 ---
 
-## v2.1 Strict Rules
+## Strict rules
 
 | Rule                         | Example                               |
 | ---------------------------- | ------------------------------------- |
 | Single-word identifiers      | `StartGame`, not `Start Game`         |
 | Prose as string literals     | `"Avoid X."`, not bare `Avoid X.`     |
-| `interface` keyword optional | `Player { }` ≡ `interface Player { }` |
-| Semicolons optional          | Terminate modifiers: `fn():mod=val;`  |
+| `interface` keyword optional | `Player { }` is `interface Player { }` |
+| Semicolons optional          | They end a modifier list: `fn():mod=val;` |
 
 ---
 
-## Style Cheat Codes
+## Style cheat codes
 
-- Favor natural language over code
-- Infer function bodies — define names for documentation
-- Keep constraints declarative: _what_, not _how_
-- Use `interface`, never `class`
-- Composition over inheritance
-- Concise > verbose, always
+- Favor natural language over code.
+- Infer a function body. Declare the name to document it.
+- Keep a constraint declarative. State *what*, not *how*.
+- Use `interface`. Never use `class`.
+- Prefer composition over inheritance.
+- Stay short.
 
 ---
 
-_SudoLang v2.2 · [Full User Guide](user-guide.md) · [Spec](reference/sudolang.sudo.md) · [Grammar](grammar-specification.md)_
+_SudoLang v2.2 · [User guide](user-guide.md) · [2.2 proposal](proposals/sudolang-2.2.md) · [Grammar](grammar-specification.md)_
