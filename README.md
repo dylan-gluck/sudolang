@@ -15,11 +15,11 @@ markdown. The packages release in lockstep, one version across all three
 
 ## Packages
 
-| Package | What it is | Install |
-|---|---|---|
-| [tree-sitter-sudolang](https://github.com/dylan-gluck/tree-sitter-sudolang) | Parser (tree-sitter grammar) | `npm install tree-sitter-sudolang` · Cargo: `tree-sitter-sudolang = "0.3.1"` |
-| [sudolang-lsp](https://github.com/dylan-gluck/sudolang-lsp) | Language server (diagnostics, formatting, hover, completion, go-to-definition) | `cargo install sudolang-lsp` or [prebuilt binaries](https://github.com/dylan-gluck/sudolang-lsp/releases) |
-| [zed-sudolang](https://github.com/dylan-gluck/zed-sudolang) | Zed extension (highlighting, outline, LSP wiring) | Zed → `zed: extensions` → search **SudoLang** |
+| Package                                                                     | What it is                                                                     | Install                                                                                                   |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| [tree-sitter-sudolang](https://github.com/dylan-gluck/tree-sitter-sudolang) | Parser (tree-sitter grammar)                                                   | `npm install tree-sitter-sudolang` · Cargo: `tree-sitter-sudolang = "0.3.1"`                              |
+| [sudolang-lsp](https://github.com/dylan-gluck/sudolang-lsp)                 | Language server (diagnostics, formatting, hover, completion, go-to-definition) | `cargo install sudolang-lsp` or [prebuilt binaries](https://github.com/dylan-gluck/sudolang-lsp/releases) |
+| [zed-sudolang](https://github.com/dylan-gluck/zed-sudolang)                 | Zed extension (highlighting, outline, LSP wiring)                              | Zed → `zed: extensions` → search **SudoLang**                                                             |
 
 The Zed extension resolves `sudolang-lsp` from `$PATH`; install the server
 once and both `.sudo` files and markdown fences get diagnostics, hover,
@@ -98,7 +98,7 @@ git clone --recurse-submodules <this-repo>
 
 ## Development
 
-```sh
+````sh
 ./scripts/release-preflight.sh              # full cross-package gate
 
 # parser
@@ -113,7 +113,7 @@ cargo test
 # zed extension
 cd zed-sudolang
 cargo build --release --target wasm32-wasip1
-```
+````
 
 Releases are tag-driven and lockstep — see [docs/release.md](docs/release.md)
 for the ordered runbook (grammar → LSP → Zed → registry).

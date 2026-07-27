@@ -3,6 +3,3 @@
 
 # Secrets — release tokens live here, never in the repo
 .env
-
-# Scratch / session transcripts — not part of the workspace
-argon-session-*.md

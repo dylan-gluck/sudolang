@@ -4,14 +4,17 @@
 // docs/ and claude/ are workspace-only, not part of any package.
 // Versions are LOCKSTEP: one release = same version across all three packages.
 
+```sudo
 Packages {
-  tree-sitter-sudolang  // parser — grammar.js only, no external scanner, v0.3.1
-  sudolang-lsp          // LSP — tower-lsp + tree-sitter, markdown virtual docs, v0.3.1
-  zed-sudolang          // Zed extension — Rust cdylib, v0.3.1
+  "tree-sitter-sudolang"  // parser — grammar.js only, no external scanner, v0.3.1
+  "sudolang-lsp"          // LSP — tower-lsp + tree-sitter, markdown virtual docs, v0.3.1
+  "zed-sudolang"          // Zed extension — Rust cdylib, v0.3.1
 }
+```
 
 # Dialect
 
+````sudo
 // SudoLang v2.2 (docs/proposals/sudolang-2.2.md) — strict superset of v2.1.
 
 Features {
@@ -29,9 +32,11 @@ FileTypes {
   pure:      ".sudo — whole-file programs, no prose"
   note:      "```sudo-next fences are proposal-only; every tool skips them"
 }
+````
 
 # Status
 
+```sudo
 Done {
   parser: "56/56 corpus tests; 6 examples (.sudo + .sudo.md) zero ERROR/MISSING; release CI"
   lsp:    "45/45 tests; markdown fences as virtual documents; 2.2 hovers/completions/lints"
@@ -47,14 +52,16 @@ Released {
 }
 
 Pending {
-  install-test: "zed: install dev extension — visual verification (user-run; see warn below)"
+  installTest: "zed: install dev extension — visual verification (user-run; see warn below)"
   workspace:    "This superproject repo has no remote yet"
 }
 
 warn "Claude is blocked from writing to ~/Library/Application Support/Zed/ — dev-extension install tests must be run by the user."
+```
 
 # Release
 
+```sudo
 // Goal: roll out one version across all packages, automated with checks.
 
 Process {
@@ -63,9 +70,11 @@ Process {
   order:     "grammar publishes first; lsp's dep is { path, version } and cargo publish strips
               the path to resolve crates.io; zed pins the pushed grammar rev"
 }
+```
 
 # LSP
 
+````sudo
 Formatter {
   strategy: "Re-indent each line by the count of `block` ancestors at its first non-ws byte"
 
@@ -87,9 +96,11 @@ Wiring {
   dep:    "lsp → grammar is a path dep (../tree-sitter-sudolang) + version; CI checks out siblings"
   abi:    "Parser ABI 15 → tree-sitter crate >= 0.25 (0.24 fails set_language with LanguageError { version: 15 })"
 }
+````
 
 # Gotchas
 
+```sudo
 warn "ASI hazard (as in JS): a statement starting with `[` or `(` after an expression
       statement parses as index/call across the newline — end the previous statement
       with `;` or reorder."
@@ -98,6 +109,7 @@ warn "Capitalised `Constraint` / `Constraints` ARE grammar keywords; Requirement
       Options / Lint / State are NOT — they collide with prose and stay identifiers."
 
 warn "grammar.js TS errors (`Cannot find name 'seq'`, etc.) are noise — missing @types/tree-sitter-cli, no effect on generation."
+```
 
 # Build
 
