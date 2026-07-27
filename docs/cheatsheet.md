@@ -199,14 +199,14 @@ with `;` or put the `[`-leading statement first.
 
 Prefer the 2.2 form — same intent, fewer tokens:
 
-| Instead of | Write |
-|---|---|
-| `if (gaps) askUser(gaps)` | `gaps -> askUser(gaps)` |
-| `f({ branch: b, base: d })` | `f(branch = b, base = d)` |
-| `if (exists(x.p)) x.p else "none"` | `x?.p ?? "none"` |
-| `filter(x => x.state == "open")` | `filter(_.state == "open")` |
-| `"Run gather as a general subagent."` | `@agent(general)` |
-| `"Use the linear MCP to fetch the issue."` | `mcp::linear.getIssue(id)` |
+| Instead of                                 | Write                       |
+| ------------------------------------------ | --------------------------- |
+| `if (gaps) askUser(gaps)`                  | `gaps -> askUser(gaps)`     |
+| `f({ branch: b, base: d })`                | `f(branch = b, base = d)`   |
+| `if (exists(x.p)) x.p else "none"`         | `x?.p ?? "none"`            |
+| `filter(x => x.state == "open")`           | `filter(_.state == "open")` |
+| `"Run gather as a general subagent."`      | `@agent(general)`           |
+| `"Use the linear MCP to fetch the issue."` | `mcp::linear.getIssue(id)`  |
 
 ---
 
@@ -253,12 +253,12 @@ union ∩          set ops
 
 ## v2.1 Strict Rules
 
-| Rule | Example |
-|------|---------|
-| Single-word identifiers | `StartGame`, not `Start Game` |
-| Prose as string literals | `"Avoid X."`, not bare `Avoid X.` |
+| Rule                         | Example                               |
+| ---------------------------- | ------------------------------------- |
+| Single-word identifiers      | `StartGame`, not `Start Game`         |
+| Prose as string literals     | `"Avoid X."`, not bare `Avoid X.`     |
 | `interface` keyword optional | `Player { }` ≡ `interface Player { }` |
-| Semicolons optional | Terminate modifiers: `fn():mod=val;` |
+| Semicolons optional          | Terminate modifiers: `fn():mod=val;`  |
 
 ---
 
@@ -266,11 +266,11 @@ union ∩          set ops
 
 - Favor natural language over code
 - Infer function bodies — define names for documentation
-- Keep constraints declarative: *what*, not *how*
+- Keep constraints declarative: _what_, not _how_
 - Use `interface`, never `class`
 - Composition over inheritance
 - Concise > verbose, always
 
 ---
 
-*SudoLang v2.2 · [Full User Guide](user-guide.md) · [Spec](reference/sudolang.sudo.md) · [Grammar](grammar-specification.md)*
+_SudoLang v2.2 · [Full User Guide](user-guide.md) · [Spec](reference/sudolang.sudo.md) · [Grammar](grammar-specification.md)_
