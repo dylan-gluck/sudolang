@@ -42,7 +42,7 @@ Done {
   lsp:    "46/46 tests; markdown fences as virtual documents; 2.2 hovers/completions/lints"
   zed:    "grammar rev pinned to 0.3.2; LSP attaches to Markdown; Cargo.lock committed"
   docs:   "all docs + examples on 2.2; prose in ASD-STE100 (skill:ste-writing); every
-           ```sudo fence in docs/ and claude/ passes validate.sh"
+           sudo fence in docs/ and claude/ passes validate.sh"
 }
 
 Released {
