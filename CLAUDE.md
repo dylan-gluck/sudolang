@@ -54,23 +54,21 @@ Done {
 }
 
 Released {
-  registries: "v0.3.2 LIVE (verified 2026-08-05 against both registries): crates.io grammar +
-               lsp, npm grammar; v0.3.2 tagged in all three repos. npm 0.3.0 is broken — Node
-               binding never compiled — deprecate it if not done. GH releases carry wasm + binaries"
-  next:       "0.3.3 prepared locally: manifests, parser regen, CHANGELOGs, LSP check CLI —
-               not yet committed, tagged, or pushed"
+  registries: "v0.3.3 LIVE (shipped 2026-08-05, verified against both registries): crates.io
+               grammar + lsp, npm grammar; v0.3.3 tagged + pushed in all three repos and the
+               workspace. npm 0.3.0 is broken — Node binding never compiled — deprecate it if
+               not done. GH releases carry wasm + binaries"
+  verify:     "ALWAYS confirm against the registry before trusting a status note here — this
+               block claimed 0.3.2 was unpushed for a week after it shipped"
   auth:       "OIDC trusted publishing configured on crates.io (both crates) and npm — CI
                publishes with NO token secrets; new packages still need one manual first publish"
-  registry:   "zed-industries/extensions PR #6961 (sudolang @ 0.3.2) — awaiting merge"
+  registry:   "zed-industries/extensions PR #6961 (sudolang @ 0.3.2) — needs a 0.3.3 bump"
+  zedCi:      "zed-sudolang has NO .github/workflows — the tag is a marker; the registry PR ships it"
 }
 
 Pending {
   installTest: "zed: install dev extension — visual verification (user-run; see warn below)"
-  commit:      "0.3.3 is UNCOMMITTED in all three submodules + workspace — commit is user-run"
-  revPin:      "after committing the grammar, re-pin zed extension.toml rev to the new grammar
-                HEAD, else preflight step 5 fails:
-                git -C tree-sitter-sudolang rev-parse HEAD"
-  push:        "then push + tag (docs/release.md steps 1-3), then the registry PR bump"
+  registryPR:  "bump PR #6961 to 0.3.3 (docs/release.md step 4) — submodule pointer + version field"
 }
 
 warn "Claude is blocked from writing to ~/Library/Application Support/Zed/ — dev-extension install tests must be run by the user."
