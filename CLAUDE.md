@@ -6,9 +6,16 @@
 
 ```sudo
 Packages {
-  "tree-sitter-sudolang"  // parser — grammar.js only, no external scanner, v0.3.2
-  "sudolang-lsp"          // LSP — tower-lsp + tree-sitter, markdown virtual docs, v0.3.2
-  "zed-sudolang"          // Zed extension — Rust cdylib, v0.3.2
+  "tree-sitter-sudolang"  // parser — grammar.js only, no external scanner, v0.3.3
+  "sudolang-lsp"          // LSP — tower-lsp + tree-sitter, markdown virtual docs, v0.3.3
+  "zed-sudolang"          // Zed extension — Rust cdylib, v0.3.3
+}
+
+Skill {
+  path:     "claude/skills/sudolang — the ONLY agent entry point; symlinked into ~/.claude/skills"
+  commands: "/sudolang lint <file> [--fix], /sudolang compact <input> — commands/*.md"
+  gate:     "scripts/check.sh — sudolang-lsp binary preferred, validate.sh (tree-sitter) fallback"
+  note:     "claude/commands/ is GONE — commands live in the skill as of 0.3.3"
 }
 ```
 
@@ -39,25 +46,31 @@ FileTypes {
 ```sudo
 Done {
   parser: "56/56 corpus tests; 7 examples (.sudo + .sudo.md) zero ERROR/MISSING; release CI"
-  lsp:    "46/46 tests; markdown fences as virtual documents; 2.2 hovers/completions/lints"
-  zed:    "grammar rev pinned to 0.3.2; LSP attaches to Markdown; Cargo.lock committed"
+  lsp:    "74/74 tests; markdown fences as virtual documents; 2.2 hovers/completions/lints;
+           `sudolang-lsp check|fmt <file>` one-shot CLI (src/cli.rs) — no editor, no cargo"
+  zed:    "grammar rev pinned; LSP attaches to Markdown; Cargo.lock committed"
   docs:   "all docs + examples on 2.2; prose in ASD-STE100 (skill:ste-writing); every
-           sudo fence in docs/ and claude/ passes validate.sh"
+           sudo fence in docs/ and claude/ passes check.sh"
 }
 
 Released {
-  registries: "v0.3.1 live: crates.io (grammar + lsp), npm (grammar; 0.3.0 is broken — Node
-               binding never compiled — deprecate it if not done), GH releases with wasm + binaries"
-  next:       "0.3.2 prepared locally: manifests, parser regen, CHANGELOGs — not yet tagged/pushed"
+  registries: "v0.3.2 LIVE (verified 2026-08-05 against both registries): crates.io grammar +
+               lsp, npm grammar; v0.3.2 tagged in all three repos. npm 0.3.0 is broken — Node
+               binding never compiled — deprecate it if not done. GH releases carry wasm + binaries"
+  next:       "0.3.3 prepared locally: manifests, parser regen, CHANGELOGs, LSP check CLI —
+               not yet committed, tagged, or pushed"
   auth:       "OIDC trusted publishing configured on crates.io (both crates) and npm — CI
                publishes with NO token secrets; new packages still need one manual first publish"
-  registry:   "zed-industries/extensions PR #6961 submitted (sudolang @ 0.3.1) — awaiting merge"
+  registry:   "zed-industries/extensions PR #6961 (sudolang @ 0.3.2) — awaiting merge"
 }
 
 Pending {
   installTest: "zed: install dev extension — visual verification (user-run; see warn below)"
-  push:        "0.3.2 is committed in all three submodules + workspace; push + tag is user-run
-                (docs/release.md steps 1-3), then the registry PR bump"
+  commit:      "0.3.3 is UNCOMMITTED in all three submodules + workspace — commit is user-run"
+  revPin:      "after committing the grammar, re-pin zed extension.toml rev to the new grammar
+                HEAD, else preflight step 5 fails:
+                git -C tree-sitter-sudolang rev-parse HEAD"
+  push:        "then push + tag (docs/release.md steps 1-3), then the registry PR bump"
 }
 
 warn "Claude is blocked from writing to ~/Library/Application Support/Zed/ — dev-extension install tests must be run by the user."
@@ -102,6 +115,15 @@ Markdown {
   scope: "Fences of one document share a symbol table — completion/hover/definition see all fences"
 }
 
+Cli {
+  modes:  "no args => serve LSP over stdio (editor). `check` / `fmt` => one-shot, then exit"
+  check:  "<path>:<line>:<column>: <message>, host line numbers, 1-indexed; exit 0/1/2"
+  fmt:    "bare => stdout (ONE file); --check => would-change report, exit 1; --write => in place.
+           Refuses a file that does not parse (exit 2) — block ranges are unreliable with errors"
+  why:    "the skill must work from ANY repo with only the installed binary — no workspace,
+           no grammar checkout, no cargo run. src/cli.rs is pure + unit-tested; main.rs is a shell"
+}
+
 Wiring {
   binary: "No bundling — Zed registry forbids it. Extension resolves via worktree.which() from $PATH"
   dep:    "lsp → grammar is a path dep (../tree-sitter-sudolang) + version; CI checks out siblings"
@@ -123,6 +145,12 @@ warn "The grammar ACCEPTS try/catch (binding without parens: `catch e { }`) and 
       lambdas — the 2.2 proposal defers try/catch as language; prefer require + @retry."
 
 warn "grammar.js TS errors (`Cannot find name 'seq'`, etc.) are noise — missing @types/tree-sitter-cli, no effect on generation."
+
+warn "NEVER regenerate the parser with a global tree-sitter CLI. CI runs `npm ci` and uses the
+      version package.json pins (0.26.8). A different CLI rewrites src/tree_sitter/*.h and
+      ~180 parser lines, and CI's `git diff --exit-code src/` fails. Use
+      PATH=\"$PWD/node_modules/.bin:$PATH\" tree-sitter generate — a version bump should move
+      exactly ONE line (.patch_version). release-preflight.sh now picks the pinned CLI itself."
 ```
 
 # Build
@@ -131,19 +159,24 @@ warn "grammar.js TS errors (`Cannot find name 'seq'`, etc.) are noise — missin
 # workspace
 ./scripts/release-preflight.sh                    # full cross-package gate
 
-# tree-sitter-sudolang/
-tree-sitter generate && tree-sitter test
+# tree-sitter-sudolang/   (npm ci first — use the PINNED CLI, not a global one)
+npm ci && PATH="$PWD/node_modules/.bin:$PATH" tree-sitter generate
+PATH="$PWD/node_modules/.bin:$PATH" tree-sitter test
 ./scripts/parse-examples.sh                       # .sudo whole + fences from .md/.sudo.md
 tree-sitter build --wasm
 
 # sudolang-lsp/   (needs ../tree-sitter-sudolang checked out)
 cargo test && cargo build --release
+cargo install --path .                            # ships `sudolang-lsp check` to ~/.cargo/bin
 cargo run --release --example format_canonical
-cargo run --release --example diag_dump -- <file.md>   # LSP diagnostics for any doc
+cargo run --release --example diag_dump -- <file.md>   # same diagnostics, dev-time dump
 
-# docs prose + fences
+# check any SudoLang (the agent-facing gate; binary preferred, tree-sitter fallback)
+sudolang-lsp check <file.sudo|file.md>            # direct, no workspace needed
+bash claude/skills/sudolang/scripts/check.sh docs/*.md claude/**/*.md
+
+# docs prose
 python3 ~/.claude/skills/ste-writing/scripts/lint.py --descriptive docs/*.md
-bash claude/skills/sudolang/scripts/validate.sh docs/*.md claude/**/*.md
 
 # zed-sudolang/
 cargo build --release --target wasm32-wasip1

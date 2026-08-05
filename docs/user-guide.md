@@ -69,7 +69,7 @@ SudoLang has two authoring shapes. Markdown with fences is the preferred default
 | `.sudo.md` | The same shape, with an extension that marks the file as SudoLang content.                                             |
 | `.sudo`    | Pure SudoLang, for a program that needs no prose.                                                                      |
 
-The tools extract and check each ` ```sudo ` fence in a `.md` or `.sudo.md` file. This covers the LSP, the `validate.sh` gate, and CI. A fenced program gets the same checks as a pure `.sudo` file. Use whichever shape fits. Use markdown when the prose earns its place next to the code.
+The tools extract and check each ` ```sudo ` fence in a `.md` or `.sudo.md` file. This covers the LSP, the `check.sh` gate, and CI. A fenced program gets the same checks as a pure `.sudo` file. Use whichever shape fits. Use markdown when the prose earns its place next to the code.
 
 ---
 

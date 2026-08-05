@@ -1,6 +1,6 @@
 # Release runbook: coordinated cross-package rollout
 
-One release is one version across all three packages. The packages stay in lockstep. The current version is **0.3.2**.
+One release is one version across all three packages. The packages stay in lockstep. The current version is **0.3.3**.
 
 The dependency chain fixes the order:
 

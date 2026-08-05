@@ -47,12 +47,23 @@ for repo in $GRAMMAR $LSP $ZED; do
 done
 
 bold "3/5 grammar: generate + corpus + examples"
-(cd $GRAMMAR && tree-sitter generate)
+# Use the CLI pinned in the grammar's package.json, exactly as CI does
+# (`npm ci` then node_modules/.bin on PATH). A globally installed CLI of a
+# different version rewrites the runtime headers and thousands of parser
+# lines, so the diff check below would fail on a clean tree.
+if [ -x "$GRAMMAR/node_modules/.bin/tree-sitter" ]; then
+  TS_BIN="$(cd $GRAMMAR && pwd)/node_modules/.bin/tree-sitter"
+  pass "using pinned CLI $("$TS_BIN" --version)"
+else
+  TS_BIN=tree-sitter
+  echo "  WARN: $GRAMMAR/node_modules is absent — run 'npm ci' there to match CI's pinned tree-sitter CLI"
+fi
+(cd $GRAMMAR && "$TS_BIN" generate)
 if [ -n "$(git -C $GRAMMAR status --porcelain src/)" ]; then
   fail "generated parser differs from committed src/ — run tree-sitter generate and commit"
 fi
 pass "committed parser is current"
-(cd $GRAMMAR && tree-sitter test >/dev/null) || fail "corpus tests"
+(cd $GRAMMAR && "$TS_BIN" test >/dev/null) || fail "corpus tests"
 pass "corpus green"
 (cd $GRAMMAR && ./scripts/parse-examples.sh >/dev/null) || fail "example parse"
 pass "examples parse (.sudo + fences)"

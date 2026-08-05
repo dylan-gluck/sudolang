@@ -1,24 +1,22 @@
----
-description: "sudo:compact(markdown|code) => sudo — compress a doc, spec, or source file into an equivalent idiomatic .sudo program"
-argument-hint: <text | @file ...>
-allowed-tools: Read, Write, Skill, Bash(tree-sitter parse:*), Bash(bash:*)
----
+# /sudolang compact
 
-# sudo:compact
+`compact(markdown | code | prose) => .sudo`
 
-This is a transform, not a reference: `compact(markdown | code | prose) => .sudo`. The command converts existing material into SudoLang, and it does nothing else. For a syntax question, for authoring guidance, or for the specification, load the `sudolang` skill. This command depends on that skill and does not replace it.
+This is a transform, not a reference. The command converts existing material into SudoLang, and it does nothing else. It writes a `.sudo` file, and the file is the deliverable.
+
+`SKILL.md` is the ground truth for what parses and what is idiomatic. Read it first.
 
 ```sudolang
-// /sudo:compact — (markdown|code) => sudo
+// /sudolang compact — (markdown|code) => sudo
 // SudoLang v2.2
 
 # Compact
 
-"Act as a SudoLang v2.2 expert. Transform each input into the most idiomatic, minimal SudoLang program that preserves every semantic intent — and write it to a .sudo file that parses cleanly."
+"Act as a SudoLang v2.2 expert. Transform each input into the most idiomatic, minimal SudoLang program that preserves every semantic intent — and write it to a .sudo file that checks cleanly."
 
 ## Ground truth
 
-"Load the sudolang skill (claude/skills/sudolang) before writing anything: SKILL.md carries the parser-verified gotchas, references/spec.md the full syntax."
+"SKILL.md carries the parser-verified gotchas and the core rules, references/spec.md the full syntax."
 "Canonical shape lives in tree-sitter-sudolang/examples — zero ERROR or MISSING nodes, always. When in doubt, match the examples."
 
 ## Transform
@@ -45,18 +43,18 @@ toSudo(input) {
 ## Output path
 
 outfileFor(input) {
-  "@file reference => sibling path with the extension replaced by .sudo."
+  "A file reference => the sibling path with the extension replaced by .sudo."
   "Raw text => ./<slug>.sudo where slug is kebab-cased from the first heading or first six meaningful words."
 }
 
 ## Pipeline
 
 compact() {
-  "Inputs: $ARGUMENTS — each @file reference or standalone text block is one input."
+  "Inputs: $ARGUMENTS — each file reference or standalone text block is one input."
   inputs = parseArguments($ARGUMENTS) |> filter(_.nonEmpty)
 
   for each input in inputs {
-    read(input) |> toSudo |> writeFile(outfileFor(input)) |> validate
+    read(input) |> toSudo |> writeFile(outfileFor(input)) |> check
   }
 }
 
@@ -64,16 +62,16 @@ Constraints {
   "The .sudo file is the deliverable — do not echo its contents in chat."
   "Do not invent semantics absent from the source."
   "Target a 20-30% token reduction for natural-language sources; less if the source is already terse."
-  "After all files: report one line per file — 'wrote <path> (<bytes>, parse: ok)'."
+  "After all files: report one line per file — 'wrote <path> (<bytes>, check: ok)'."
 }
 
-## Validation gate
+## Check gate
 
 @retry(3)
-validate(path) {
-  "Hard gate: run the sudolang skill's scripts/validate.sh <path>. Exit 0 means done."
-  "On failure: fix the reported lines per the skill's gotchas table, rewrite, re-validate."
-  "After the third attempt, report residual diagnostics honestly — never claim success on a failing parse."
+check(path) {
+  "Hard gate: run scripts/check.sh <path>. Exit 0 means done."
+  "On failure: fix the reported lines per the skill's gotchas table, rewrite, re-check."
+  "After the third attempt, report residual diagnostics honestly — never claim success on a failing check."
 }
 
 compact()

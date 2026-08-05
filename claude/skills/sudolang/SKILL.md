@@ -1,12 +1,13 @@
 ---
 name: sudolang
 description: >-
-  Reference for writing, editing, reviewing, or validating SudoLang, the
-  LLM-interpreted pseudolanguage (v2.2 dialect). Use it for .md or .sudo.md
-  files that carry ```sudo fences, which is the preferred authoring form, and
-  for pure .sudo files. Use it for a SudoLang syntax question, and when another
-  command such as sudo:compact needs the spec, the gotchas, or the validation
-  gate.
+  Reference and commands for SudoLang, the LLM-interpreted pseudolanguage
+  (v2.2 dialect). Invoke as `/sudolang [command]`: `lint <file> [--fix]`
+  checks a file and repairs it, `compact <input>` compresses a doc, spec, or
+  source file into SudoLang. With no command it is the syntax reference. Use
+  it for .md or .sudo.md files that carry ```sudo fences, which is the
+  preferred authoring form, for pure .sudo files, and for any SudoLang syntax
+  question.
 ---
 
 # SudoLang v2.2
@@ -16,6 +17,17 @@ An LLM **interprets** a SudoLang program. Nothing compiles it. This workspace ow
 The semantics do not change: structure where structure exists, prose as string literals, and inference everywhere else. The [New in 2.2](#new-in-22) section covers `::`, named arguments, `->`, decorators, `?.` and `??`, `...`, and `_`.
 
 **Authoring format.** Write SudoLang in markdown with ` ```sudo ` code fences. Use a plain `.md` file, or use `.sudo.md` to mark the file as SudoLang content. The prose explains, and the fences carry the program. A pure `.sudo` file still works, and it suits a program that needs no prose. The tools extract and check each ` ```sudo ` fence in a `.md` or `.sudo.md` file.
+
+## Commands
+
+Invoke this skill as `/sudolang [command] [options]`. Read the command file, then follow it. The command file is the specification for that command. This page is the shared ground truth that each one depends on.
+
+| Command   | Invocation                              | File                 |
+| --------- | --------------------------------------- | -------------------- |
+| `lint`    | `/sudolang lint <file>... [--fix]`      | `commands/lint.md`   |
+| `compact` | `/sudolang compact <text \| @file>...`  | `commands/compact.md` |
+
+With no command, this skill is the reference. Answer from the sections below, and load `references/spec.md` when the question needs the full syntax.
 
 ## Workspace map
 
@@ -68,20 +80,23 @@ The documented decorators are `@agent(name)`, `@retry(n)`, `@timeout(seconds)`, 
 
 Version 2.2 also documents these as language: `throw` and `return` statements, `"""triple-quoted blocks"""` for long prose, `@scope/path` resource sigils, money and comma numerics (`$100,000`, `1,000,000`), optional parameters (`arg?`), and trailing commas.
 
-## Validation gate
+## Check gate
 
-A `.sudo` file or a ` ```sudo ` fence is not done until the parser accepts it.
+A `.sudo` file or a ` ```sudo ` fence is not done until the checker accepts it.
 
 ```sh
-scripts/validate.sh <file.sudo | file.md | file.sudo.md> [more files...]
+scripts/check.sh <file.sudo | file.md | file.sudo.md | file.mdc> [more files...]
 ```
 
-- The script parses a `.sudo` file whole. For a `.md` or `.sudo.md` file, it extracts every ` ```sudo `, ` ```sudolang `, and ` ```SudoLang ` fence, and it parses each one on its own with the fence line offset. It skips a ` ```sudo-next ` fence, which is reserved for a proposal.
-- Exit 0 means clean. On a failure, the script prints the ERROR and MISSING node ranges. Fix the lines per the rules above and run it again. Take up to three attempts, then report the remaining diagnostics honestly. Never claim success on a failing parse.
-- Set `SUDOLANG_GRAMMAR_DIR` to override the grammar location, if the workspace is not at `~/Workspace/sudolang`.
+- The script runs the best layer the machine has. It prefers `sudolang-lsp check`, which reports every diagnostic the language server publishes: syntax errors, missing tokens, malformed modifier lists, broken string interpolations, and pipe-placeholder misuse. That binary is the only dependency — no workspace, no grammar checkout, and no build step. Install it with `cargo install sudolang-lsp`.
+- Without the binary the script falls back to `scripts/validate.sh`, which parses with the `tree-sitter` CLI against a grammar checkout and reports parse errors only. It prints which layer ran.
+- Either layer parses a `.sudo` file whole. For a markdown host it checks each ` ```sudo `, ` ```sudolang `, and ` ```SudoLang ` fence on its own, at host line numbers. It skips a ` ```sudo-next ` fence, which is reserved for a proposal.
+- Exit 0 means clean, 1 means findings, and 2 means a usage or environment error. Fix the reported lines per the rules above and run it again. Take up to three attempts, then report the remaining diagnostics honestly. Never claim success on a failing check.
+- Set `SUDOLANG_CHECK` to `lsp` or `treesitter` to force a layer. Set `SUDOLANG_GRAMMAR_DIR` to point the fallback at a grammar checkout outside `~/Workspace/sudolang`.
 
 ## Deeper reference
 
+- `commands/`: the command specifications, one file per command.
 - `references/spec.md`: the full syntax reference, with every construct, an example, the operator precedence, and the strict-mode differences from v2.0.
 - `references/tooling.md`: the LSP capabilities, the editor setup, the grammar build and test commands, the formatter behavior, and the fence-injection details.
 - `docs/user-guide.md`: the long-form guide. `docs/proposals/`: the language RFCs.
